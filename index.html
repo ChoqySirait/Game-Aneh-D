@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flappy Bird - Proyek Pertama</title>
+  <style>
+    body {
+      background-color: #1a1a1a;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      font-family: sans-serif;
+    }
+    canvas {
+      border: 3px solid #ffffff;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+    }
+  </style>
+</head>
+<body>
+
+<canvas id="gameCanvas" width="320" height="480"></canvas>
+
+<script>
+  // 1. Inisialisasi Canvas
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+
+  // 2. Variabel Game & Burung (Kotak Kuning)
+  let birdX = 50;
+  let birdY = 150;
+  let birdSize = 20;
+  let gravity = 0.25;
+  let velocity = 0;
+  let jump = -4.5;
+
+  // 3. Variabel Pipa & Skor
+  let pipes = [];
+  let pipeWidth = 40;
+  let pipeGap = 120;
+  let frameCount = 0;
+  let score = 0;
+  let isGameOver = false;
+
+  // 4. Kontrol (Tekan Spasi untuk Melompat / Restart)
+  document.addEventListener("keydown", function(event) {
+    if (event.code === "Space") {
+      if (isGameOver) {
+        resetGame();
+      } else {
+        velocity = jump;
+      }
+    }
+  });
+
+  // 5. Logika Reset Game
+  function resetGame() {
+    birdY = 150;
+    velocity = 0;
+    pipes = [];
+    score = 0;
+    frameCount = 0;
+    isGameOver = false;
+    loop();
+  }
+
+  // 6. Game Loop Utama
+  function loop() {
+    if (isGameOver) return;
+
+    // A. APALAGI BILA BERGERAK (Update Logika)
+    velocity += gravity;
+    birdY += velocity;
+
+    // Tambahkan pipa baru setiap 100 frame
+    frameCount++;
+    if (frameCount % 100 === 0) {
+      let topPipeHeight = Math.floor(Math.random() * (canvas.height - pipeGap - 60)) + 30;
+      pipes.push({
+        x: canvas.width,
+        top: topPipeHeight,
+        passed: false
+      });
+    }
+
+    // Perbarui posisi pipa
+    for (let i = 0; i < pipes.length; i++) {
+      let p = pipes[i];
+      p.x -= 2;
+
+      // Cek jika burung berhasil melewati pipa (Tambah Skor)
+      if (!p.passed && p.x + pipeWidth < birdX) {
+        score++;
+        p.passed = true;
+      }
+
+      // Deteksi Tabrakan Pipa
+      if (
+        birdX + birdSize > p.x &&
+        birdX < p.x + pipeWidth &&
+        (birdY < p.top || birdY + birdSize > p.top + pipeGap)
+      ) {
+        isGameOver = true;
+      }
+    }
+
+    // Deteksi Tabrakan Atas/Bawah Layar
+    if (birdY + birdSize > canvas.height || birdY < 0) {
+      isGameOver = true;
+    }
+
+    // Hapus pipa yang sudah keluar dari layar kiri
+    if (pipes.length > 0 && pipes[0].x < -pipeWidth) {
+      pipes.shift();
+    }
+
+    // B. GAMBAR SEMUA OBJEK (Render)
+    // Clear / Bersihkan Layar (Latar Langit Biru)
+    ctx.fillStyle = "#70c5ce";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Gambar Pipa (Kotak Hijau)
+    ctx.fillStyle = "#2e7d32";
+    for (let i = 0; i < pipes.length; i++) {
+      let p = pipes[i];
+      // Pipa Atas
+      ctx.fillRect(p.x, 0, pipeWidth, p.top);
+      // Pipa Bawah
+      ctx.fillRect(p.x, p.top + pipeGap, pipeWidth, canvas.height - (p.top + pipeGap));
+    }
+
+    // Gambar Burung (Kotak Kuning)
+    ctx.fillStyle = "#ffeb3b";
+    ctx.fillRect(birdX, birdY, birdSize, birdSize);
+
+    // Gambar Teks Skor
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 20px sans-serif";
+    ctx.fillText("Skor: " + score, 15, 30);
+
+    // Layar Game Over
+    if (isGameOver) {
+      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      ctx.fillStyle = "#ffffff";
+      ctx.font = "bold 28px sans-serif";
+      ctx.fillText("GAME OVER", 70, 220);
+      ctx.font = "14px sans-serif";
+      ctx.fillText("Tekan SPASI untuk main lagi", 60, 260);
+    } else {
+      requestAnimationFrame(loop);
+    }
+  }
+
+  // Jalankan Game Pertama Kali
+  loop();
+</script>
+
+</body>
+</html>
