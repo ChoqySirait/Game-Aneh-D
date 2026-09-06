@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flappy Bird - Proyek Pertama</title>
+  <title>Flappy Bird - Shield Power Edition</title>
   <style>
     body {
       background-color: #1a1a1a;
@@ -29,13 +29,20 @@
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d");
 
-  // 2. Variabel Game & Burung (Kotak Kuning)
+  // 2. Variabel Game & Burung
   let birdX = 50;
   let birdY = 150;
   let birdSize = 20;
   let gravity = 0.25;
   let velocity = 0;
   let jump = -4.5;
+
+  // Variabel Kekuatan Khusus (Perisai / Shield)
+  let isShieldActive = false;     // Status perisai
+  let shieldDuration = 300;       // Durasi perisai aktif (~5 detik)
+  let shieldTimeLeft = 0;         // Sisa durasi perisai
+  let shieldCooldown = 600;       // Waktu tunggu (~10 detik)
+  let shieldCooldownLeft = 0;     // Sisa waktu cooldown
 
   // 3. Variabel Pipa & Skor
   let pipes = [];
@@ -45,13 +52,22 @@
   let score = 0;
   let isGameOver = false;
 
-  // 4. Kontrol (Tekan Spasi untuk Melompat / Restart)
+  // 4. Kontrol (Spasi untuk Melompat/Restart, Shift untuk Perisai)
   document.addEventListener("keydown", function(event) {
     if (event.code === "Space") {
       if (isGameOver) {
         resetGame();
       } else {
         velocity = jump;
+      }
+    }
+
+    // Tekan Shift untuk mengaktifkan perisai
+    if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
+      if (!isGameOver && !isShieldActive && shieldCooldownLeft <= 0) {
+        isShieldActive = true;
+        shieldTimeLeft = shieldDuration;
+        shieldCooldownLeft = shieldCooldown;
       }
     }
   });
@@ -63,6 +79,9 @@
     pipes = [];
     score = 0;
     frameCount = 0;
+    isShieldActive = false;
+    shieldTimeLeft = 0;
+    shieldCooldownLeft = 0;
     isGameOver = false;
     loop();
   }
@@ -71,9 +90,19 @@
   function loop() {
     if (isGameOver) return;
 
-    // A. APALAGI BILA BERGERAK (Update Logika)
+    // A. UPDATE LOGIKA & POSISI
     velocity += gravity;
     birdY += velocity;
+
+    // Update Waktu Perisai & Cooldown
+    if (isShieldActive) {
+      shieldTimeLeft--;
+      if (shieldTimeLeft <= 0) {
+        isShieldActive = false;
+      }
+    } else if (shieldCooldownLeft > 0) {
+      shieldCooldownLeft--;
+    }
 
     // Tambahkan pipa baru setiap 100 frame
     frameCount++;
@@ -86,12 +115,12 @@
       });
     }
 
-    // Perbarui posisi pipa
+    // Perbarui posisi pipa & deteksi tabrakan
     for (let i = 0; i < pipes.length; i++) {
       let p = pipes[i];
       p.x -= 2;
 
-      // Cek jika burung berhasil melewati pipa (Tambah Skor)
+      // Tambah Skor saat lolos dari pipa
       if (!p.passed && p.x + pipeWidth < birdX) {
         score++;
         p.passed = true;
@@ -103,7 +132,13 @@
         birdX < p.x + pipeWidth &&
         (birdY < p.top || birdY + birdSize > p.top + pipeGap)
       ) {
-        isGameOver = true;
+        if (isShieldActive) {
+          // Jika Perisai Aktif: Pipa hancur (dilempar keluar layar)
+          p.x = -pipeWidth * 2;
+        } else {
+          // Jika Perisai Mati: Game Over
+          isGameOver = true;
+        }
       }
     }
 
@@ -112,34 +147,53 @@
       isGameOver = true;
     }
 
-    // Hapus pipa yang sudah keluar dari layar kiri
+    // Hapus pipa yang sudah keluar layar
     if (pipes.length > 0 && pipes[0].x < -pipeWidth) {
       pipes.shift();
     }
 
-    // B. GAMBAR SEMUA OBJEK (Render)
-    // Clear / Bersihkan Layar (Latar Langit Biru)
+    // B. RENDER / GAMBAR TAMPILAN
+    // Latar Langit Biru
     ctx.fillStyle = "#70c5ce";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Gambar Pipa (Kotak Hijau)
+    // Gambar Pipa Hijau
     ctx.fillStyle = "#2e7d32";
     for (let i = 0; i < pipes.length; i++) {
       let p = pipes[i];
-      // Pipa Atas
       ctx.fillRect(p.x, 0, pipeWidth, p.top);
-      // Pipa Bawah
       ctx.fillRect(p.x, p.top + pipeGap, pipeWidth, canvas.height - (p.top + pipeGap));
     }
 
-    // Gambar Burung (Kotak Kuning)
-    ctx.fillStyle = "#ffeb3b";
+    // Gambar Burung (Merah menyala saat Perisai Aktif, Kuning saat Normal)
+    if (isShieldActive) {
+      ctx.fillStyle = "#ff1744";
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = "#ff1744";
+    } else {
+      ctx.fillStyle = "#ffeb3b";
+      ctx.shadowBlur = 0;
+    }
     ctx.fillRect(birdX, birdY, birdSize, birdSize);
+    ctx.shadowBlur = 0; // Reset efek glow
 
-    // Gambar Teks Skor
+    // Teks Skor
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 20px sans-serif";
     ctx.fillText("Skor: " + score, 15, 30);
+
+    // Indikator UI Perisai
+    ctx.font = "14px sans-serif";
+    if (isShieldActive) {
+      ctx.fillStyle = "#ff1744";
+      ctx.fillText("PERISAI AKTIF: " + Math.ceil(shieldTimeLeft / 60) + "s", 15, 55);
+    } else if (shieldCooldownLeft > 0) {
+      ctx.fillStyle = "#ffeb3b";
+      ctx.fillText("Cooldown: " + Math.ceil(shieldCooldownLeft / 60) + "s", 15, 55);
+    } else {
+      ctx.fillStyle = "#00e676";
+      ctx.fillText("Perisai READY (Tekan Shift)", 15, 55);
+    }
 
     // Layar Game Over
     if (isGameOver) {
@@ -156,7 +210,7 @@
     }
   }
 
-  // Jalankan Game Pertama Kali
+  // Jalankan Game
   loop();
 </script>
 
