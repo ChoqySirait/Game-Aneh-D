@@ -3,56 +3,103 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flappy Bird - Shield Power Edition</title>
+  <title>Flappy Eagle HD</title>
   <style>
     body {
-      background-color: #1a1a1a;
+      background-color: #0d1117;
       display: flex;
       justify-content: center;
       align-items: center;
       height: 100vh;
       margin: 0;
-      font-family: sans-serif;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     canvas {
-      border: 3px solid #ffffff;
-      box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+      width: 360px;
+      height: 540px;
+      border: 3px solid #30363d;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
     }
   </style>
 </head>
 <body>
 
-<canvas id="gameCanvas" width="320" height="480"></canvas>
+<canvas id="gameCanvas" width="720" height="1080"></canvas>
 
 <script>
-  // 1. Inisialisasi Canvas
   const canvas = document.getElementById("gameCanvas");
   const ctx = canvas.getContext("2d");
 
-  // 2. Variabel Game & Burung
-  let birdX = 50;
-  let birdY = 150;
-  let birdSize = 20;
-  let gravity = 0.25;
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+
+  // --- MEMUAT GAMBAR ELANG HD (SVG DATA) ---
+  const eagleImg = new Image();
+  eagleImg.src = "data:image/svg+xml;utf8," + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 80">
+      <!-- Sayap Belakang -->
+      <path d="M 40 40 Q 20 10 5 25 Q 25 45 45 45 Z" fill="#5d4037" />
+      <!-- Badan Elang -->
+      <ellipse cx="45" cy="45" rx="25" ry="18" fill="#795548" />
+      <!-- Ekor -->
+      <polygon points="15,45 5,40 5,50" fill="#ffffff" />
+      <!-- Kepala Putih khas Elang (Bald Eagle) -->
+      <path d="M 55 32 C 55 22, 75 22, 80 35 C 80 48, 60 52, 55 45 Z" fill="#ffffff" />
+      <!-- Paruh Kuning Tajam -->
+      <path d="M 78 33 Q 95 35 90 45 Q 80 43 78 38 Z" fill="#ffc107" />
+      <!-- Mata -->
+      <circle cx="70" cy="33" r="3" fill="#000000" />
+      <circle cx="71" cy="32" r="1" fill="#ffffff" />
+      <!-- Sayap Depan (Kepakan) -->
+      <path d="M 45 42 Q 30 5 10 12 Q 25 38 50 48 Z" fill="#8d6e63" />
+    </svg>
+  `);
+
+  // --- MEMUAT GAMBAR PIPA HD ---
+  const pipeImg = new Image();
+  pipeImg.src = "data:image/svg+xml;utf8," + encodeURIComponent(`
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 500" preserveAspectRatio="none">
+      <defs>
+        <linearGradient id="pipeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#2e7d32" />
+          <stop offset="30%" stop-color="#4caf50" />
+          <stop offset="70%" stop-color="#81c784" />
+          <stop offset="100%" stop-color="#1b5e20" />
+        </linearGradient>
+      </defs>
+      <!-- Batang Pipa -->
+      <rect x="5" y="0" width="90" height="500" fill="url(#pipeGrad)" stroke="#1b5e20" stroke-width="3"/>
+      <!-- Bibir Pipa -->
+      <rect x="0" y="0" width="100" height="30" fill="url(#pipeGrad)" stroke="#1b5e20" stroke-width="3" rx="5"/>
+    </svg>
+  `);
+
+  // Variabel Elang
+  let birdX = 100;
+  let birdY = 300;
+  let birdWidth = 80;
+  let birdHeight = 64;
+  let gravity = 0.5;
   let velocity = 0;
-  let jump = -4.5;
+  let jump = -9.5;
 
-  // Variabel Kekuatan Khusus (Perisai / Shield)
-  let isShieldActive = false;     // Status perisai
-  let shieldDuration = 300;       // Durasi perisai aktif (~5 detik)
-  let shieldTimeLeft = 0;         // Sisa durasi perisai
-  let shieldCooldown = 600;       // Waktu tunggu (~10 detik)
-  let shieldCooldownLeft = 0;     // Sisa waktu cooldown
+  // Variabel Perisai (Shield)
+  let isShieldActive = false;
+  let shieldDuration = 300;
+  let shieldTimeLeft = 0;
+  let shieldCooldown = 600;
+  let shieldCooldownLeft = 0;
 
-  // 3. Variabel Pipa & Skor
+  // Variabel Pipa & Skor
   let pipes = [];
-  let pipeWidth = 40;
-  let pipeGap = 120;
+  let pipeWidth = 110;
+  let pipeGap = 270;
   let frameCount = 0;
   let score = 0;
   let isGameOver = false;
 
-  // 4. Kontrol (Spasi untuk Melompat/Restart, Shift untuk Perisai)
+  // Input Keyboard
   document.addEventListener("keydown", function(event) {
     if (event.code === "Space") {
       if (isGameOver) {
@@ -62,7 +109,6 @@
       }
     }
 
-    // Tekan Shift untuk mengaktifkan perisai
     if (event.code === "ShiftLeft" || event.code === "ShiftRight") {
       if (!isGameOver && !isShieldActive && shieldCooldownLeft <= 0) {
         isShieldActive = true;
@@ -72,9 +118,8 @@
     }
   });
 
-  // 5. Logika Reset Game
   function resetGame() {
-    birdY = 150;
+    birdY = 300;
     velocity = 0;
     pipes = [];
     score = 0;
@@ -86,28 +131,23 @@
     loop();
   }
 
-  // 6. Game Loop Utama
   function loop() {
     if (isGameOver) return;
 
-    // A. UPDATE LOGIKA & POSISI
+    // A. LOGIKA & PERGERAKAN
     velocity += gravity;
     birdY += velocity;
 
-    // Update Waktu Perisai & Cooldown
     if (isShieldActive) {
       shieldTimeLeft--;
-      if (shieldTimeLeft <= 0) {
-        isShieldActive = false;
-      }
+      if (shieldTimeLeft <= 0) isShieldActive = false;
     } else if (shieldCooldownLeft > 0) {
       shieldCooldownLeft--;
     }
 
-    // Tambahkan pipa baru setiap 100 frame
     frameCount++;
     if (frameCount % 100 === 0) {
-      let topPipeHeight = Math.floor(Math.random() * (canvas.height - pipeGap - 60)) + 30;
+      let topPipeHeight = Math.floor(Math.random() * (canvas.height - pipeGap - 200)) + 100;
       pipes.push({
         x: canvas.width,
         top: topPipeHeight,
@@ -115,102 +155,111 @@
       });
     }
 
-    // Perbarui posisi pipa & deteksi tabrakan
     for (let i = 0; i < pipes.length; i++) {
       let p = pipes[i];
-      p.x -= 2;
+      p.x -= 4;
 
-      // Tambah Skor saat lolos dari pipa
       if (!p.passed && p.x + pipeWidth < birdX) {
         score++;
         p.passed = true;
       }
 
-      // Deteksi Tabrakan Pipa
+      // Deteksi Tabrakan (Hitbox)
       if (
-        birdX + birdSize > p.x &&
-        birdX < p.x + pipeWidth &&
-        (birdY < p.top || birdY + birdSize > p.top + pipeGap)
+        birdX + birdWidth - 10 > p.x &&
+        birdX + 10 < p.x + pipeWidth &&
+        (birdY + 10 < p.top || birdY + birdHeight - 10 > p.top + pipeGap)
       ) {
         if (isShieldActive) {
-          // Jika Perisai Aktif: Pipa hancur (dilempar keluar layar)
           p.x = -pipeWidth * 2;
         } else {
-          // Jika Perisai Mati: Game Over
           isGameOver = true;
         }
       }
     }
 
-    // Deteksi Tabrakan Atas/Bawah Layar
-    if (birdY + birdSize > canvas.height || birdY < 0) {
+    if (birdY + birdHeight > canvas.height || birdY < 0) {
       isGameOver = true;
     }
 
-    // Hapus pipa yang sudah keluar layar
     if (pipes.length > 0 && pipes[0].x < -pipeWidth) {
       pipes.shift();
     }
 
-    // B. RENDER / GAMBAR TAMPILAN
-    // Latar Langit Biru
-    ctx.fillStyle = "#70c5ce";
+    // B. RENDER HD
+    // Latar Belakang Gradien Langit
+    let bgGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    bgGradient.addColorStop(0, "#0f2027");
+    bgGradient.addColorStop(0.5, "#203a43");
+    bgGradient.addColorStop(1, "#2c5364");
+    ctx.fillStyle = bgGradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Gambar Pipa Hijau
-    ctx.fillStyle = "#2e7d32";
+    // GAMBAR PIPA HD
     for (let i = 0; i < pipes.length; i++) {
       let p = pipes[i];
-      ctx.fillRect(p.x, 0, pipeWidth, p.top);
-      ctx.fillRect(p.x, p.top + pipeGap, pipeWidth, canvas.height - (p.top + pipeGap));
+
+      // Pipa Atas (Dibalik)
+      ctx.save();
+      ctx.translate(p.x + pipeWidth / 2, p.top / 2);
+      ctx.scale(1, -1);
+      ctx.drawImage(pipeImg, -pipeWidth / 2, -p.top / 2, pipeWidth, p.top);
+      ctx.restore();
+
+      // Pipa Bawah
+      let bottomPipeHeight = canvas.height - (p.top + pipeGap);
+      ctx.drawImage(pipeImg, p.x, p.top + pipeGap, pipeWidth, bottomPipeHeight);
     }
 
-    // Gambar Burung (Merah menyala saat Perisai Aktif, Kuning saat Normal)
+    // GAMBAR ELANG HD (Dengan Efek Rotasi Terbang)
+    ctx.save();
+    ctx.translate(birdX + birdWidth / 2, birdY + birdHeight / 2);
+    let angle = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, (velocity / 12)));
+    ctx.rotate(angle);
+
     if (isShieldActive) {
-      ctx.fillStyle = "#ff1744";
-      ctx.shadowBlur = 15;
+      ctx.shadowBlur = 35;
       ctx.shadowColor = "#ff1744";
-    } else {
-      ctx.fillStyle = "#ffeb3b";
-      ctx.shadowBlur = 0;
     }
-    ctx.fillRect(birdX, birdY, birdSize, birdSize);
-    ctx.shadowBlur = 0; // Reset efek glow
 
-    // Teks Skor
+    ctx.drawImage(eagleImg, -birdWidth / 2, -birdHeight / 2, birdWidth, birdHeight);
+    ctx.restore();
+
+    // TEKS UI & SKOR HD
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 20px sans-serif";
-    ctx.fillText("Skor: " + score, 15, 30);
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = "rgba(0,0,0,0.5)";
+    ctx.font = "bold 42px 'Segoe UI', sans-serif";
+    ctx.fillText("Skor: " + score, 35, 75);
 
-    // Indikator UI Perisai
-    ctx.font = "14px sans-serif";
+    ctx.font = "bold 26px 'Segoe UI', sans-serif";
     if (isShieldActive) {
       ctx.fillStyle = "#ff1744";
-      ctx.fillText("PERISAI AKTIF: " + Math.ceil(shieldTimeLeft / 60) + "s", 15, 55);
+      ctx.fillText("PERISAI AKTIF: " + Math.ceil(shieldTimeLeft / 60) + "s", 35, 120);
     } else if (shieldCooldownLeft > 0) {
       ctx.fillStyle = "#ffeb3b";
-      ctx.fillText("Cooldown: " + Math.ceil(shieldCooldownLeft / 60) + "s", 15, 55);
+      ctx.fillText("Cooldown: " + Math.ceil(shieldCooldownLeft / 60) + "s", 35, 120);
     } else {
       ctx.fillStyle = "#00e676";
-      ctx.fillText("Perisai READY (Tekan Shift)", 15, 55);
+      ctx.fillText("Perisai READY (Tekan Shift)", 35, 120);
     }
+    ctx.shadowBlur = 0;
 
     // Layar Game Over
     if (isGameOver) {
-      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+      ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 28px sans-serif";
-      ctx.fillText("GAME OVER", 70, 220);
-      ctx.font = "14px sans-serif";
-      ctx.fillText("Tekan SPASI untuk main lagi", 60, 260);
+      ctx.font = "bold 60px 'Segoe UI', sans-serif";
+      ctx.fillText("GAME OVER", 180, 500);
+      ctx.font = "30px 'Segoe UI', sans-serif";
+      ctx.fillText("Tekan SPASI untuk main lagi", 170, 570);
     } else {
       requestAnimationFrame(loop);
     }
   }
 
-  // Jalankan Game
   loop();
 </script>
 
