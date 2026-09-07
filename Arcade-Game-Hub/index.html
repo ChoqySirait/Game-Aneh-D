@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Arcade Hub HD - Mini Games Portal</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <h1>🎮 ARCADE HUB HD</h1>
+
+  <!-- PILIHAN MENU GAME -->
+  <div class="menu-container">
+    <button class="game-btn active" onclick="switchGame('flappy')">🦅 Flappy Eagle</button>
+    <button class="game-btn" onclick="switchGame('snake')">🐍 Cyber Snake</button>
+    <button class="game-btn" onclick="switchGame('memory')">🧠 Memory Matrix</button>
+  </div>
+
+  <!-- CONTAINER GAME -->
+  <div id="canvas-wrapper">
+    <canvas id="gameCanvas" width="720" height="1080"></canvas>
+  </div>
+
+  <div class="instructions" id="gameInfo">
+    Gunakan <b>SPASI</b> untuk melompat & <b>SHIFT</b> untuk Perisai.
+  </div>
+
+  <!-- SCRIPT FILES (Dipisah secara modular) -->
+  <script src="js/flappy.js"></script>
+  <script src="js/snake.js"></script>
+  <script src="js/memory.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>
