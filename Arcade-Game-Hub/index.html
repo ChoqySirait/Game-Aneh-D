@@ -8,16 +8,16 @@
 </head>
 <body>
 
-  <h1>🎮 ARCADE HUB</h1>
+  <h1>🎮 ARCADE HUB HD</h1>
 
-  <!-- MENU PILIHAN GAME -->
+  <!-- PILIHAN MENU GAME -->
   <div class="menu-container">
     <button class="game-btn active" onclick="switchGame('flappy', event)">🦅 Flappy Eagle</button>
     <button class="game-btn" onclick="switchGame('snake', event)">🐍 Cyber Snake</button>
     <button class="game-btn" onclick="switchGame('memory', event)">🧠 Memory Matrix</button>
   </div>
 
-  <!-- CONTAINER CANVAS -->
+  <!-- CONTAINER GAME -->
   <div id="canvas-wrapper">
     <canvas id="gameCanvas" width="720" height="1080"></canvas>
   </div>
@@ -26,7 +26,7 @@
     Gunakan <b>SPASI</b> untuk melompat & <b>SHIFT</b> untuk Perisai.
   </div>
 
-  <!-- SKRIP MODULAR (Pastikan urutan pemanggilan benar) -->
+  <!-- SCRIPT FILES -->
   <script src="js/flappy.js"></script>
   <script src="js/snake.js"></script>
   <script src="js/memory.js"></script>

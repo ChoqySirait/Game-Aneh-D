@@ -46,7 +46,6 @@ function updateFlappy() {
   let s = flappyState;
   if (!s.isStarted || s.isGameOver) return;
 
-  // Tingkat Kesulitan Dinamis berdasarkan Skor
   let speedMultiplier = Math.min(2.0, 1 + Math.floor(s.score / 5) * 0.1);
   let currentSpeed = s.baseSpeed * speedMultiplier;
   let currentGap = Math.max(200, s.baseGap - Math.floor(s.score / 5) * 10);
@@ -86,12 +85,20 @@ function updateFlappy() {
       s.birdX + 10 < p.x + s.pipeWidth &&
       (s.birdY + 10 < p.top || s.birdY + s.birdHeight - 10 > p.top + p.gap)
     ) {
-      if (s.isShieldActive) p.x = -s.pipeWidth * 2;
-      else s.isGameOver = true;
+      if (s.isShieldActive) {
+        createParticles(p.x + s.pipeWidth / 2, p.top, "#ff1744", 20);
+        p.x = -s.pipeWidth * 2;
+      } else {
+        playSound('hit');
+        s.isGameOver = true;
+      }
     }
   }
 
-  if (s.birdY + s.birdHeight > canvas.height || s.birdY < 0) s.isGameOver = true;
+  if (s.birdY + s.birdHeight > canvas.height || s.birdY < 0) {
+    if (!s.isGameOver) playSound('hit');
+    s.isGameOver = true;
+  }
   if (s.pipes.length > 0 && s.pipes[0].x < -s.pipeWidth) s.pipes.shift();
 }
 
@@ -120,7 +127,6 @@ function renderFlappy() {
   ctx.drawImage(eagleImg, -s.birdWidth / 2, -s.birdHeight / 2, s.birdWidth, s.birdHeight);
   ctx.restore();
 
-  // Score & High Score
   ctx.fillStyle = "#ffffff";
   ctx.font = "bold 38px sans-serif";
   ctx.fillText("Skor: " + s.score, 35, 65);
@@ -133,7 +139,6 @@ function renderFlappy() {
   else if (s.shieldCooldownLeft > 0) { ctx.fillStyle = "#ffeb3b"; ctx.fillText("Cooldown: " + Math.ceil(s.shieldCooldownLeft / 60) + "s", 35, 145); }
   else { ctx.fillStyle = "#00e676"; ctx.fillText("Perisai READY (Shift)", 35, 145); }
 
-  // Start Screen Overlay
   if (!s.isStarted) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -145,7 +150,6 @@ function renderFlappy() {
     ctx.fillText("Tekan SPASI Untuk Mulai", 190, 550);
   }
 
-  // Game Over Overlay
   if (s.isGameOver) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);

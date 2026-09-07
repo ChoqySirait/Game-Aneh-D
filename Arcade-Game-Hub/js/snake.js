@@ -22,7 +22,6 @@ function updateSnake() {
   let s = snakeState;
   if (!s.isStarted || s.isGameOver) return;
 
-  // Kecepatan bertambah seiring bertambahnya skor
   let delay = Math.max(3, 8 - Math.floor(s.score / 50));
   s.speedCounter++;
   if (s.speedCounter % delay !== 0) return;
@@ -31,15 +30,30 @@ function updateSnake() {
   let head = { x: s.snake[0].x + s.dx, y: s.snake[0].y + s.dy };
   let cols = canvas.width / snakeGridSize;
   let rows = canvas.height / snakeGridSize;
-  if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows) { s.isGameOver = true; return; }
+
+  if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows) {
+    playSound('hit');
+    s.isGameOver = true;
+    return;
+  }
 
   for (let part of s.snake) {
-    if (part.x === head.x && part.y === head.y) { s.isGameOver = true; return; }
+    if (part.x === head.x && part.y === head.y) {
+      playSound('hit');
+      s.isGameOver = true;
+      return;
+    }
   }
 
   s.snake.unshift(head);
   if (head.x === s.food.x && head.y === s.food.y) {
     s.score += 10;
+    playSound('eat');
+    createParticles(
+      s.food.x * snakeGridSize + snakeGridSize / 2,
+      s.food.y * snakeGridSize + snakeGridSize / 2,
+      "#ff007f", 15
+    );
     if (s.score > s.highScore) {
       s.highScore = s.score;
       localStorage.setItem("snake_high_score", s.highScore);

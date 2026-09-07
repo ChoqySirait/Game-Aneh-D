@@ -101,9 +101,15 @@ function handleMemoryClick(x, y) {
     let index = r * s.gridSize + c;
     if (!s.selectedTiles.includes(index)) {
       s.selectedTiles.push(index);
+      playSound('tile');
+      createParticles(x, y, "#00f2fe", 10);
+
       if (!s.activeTiles.includes(index)) {
         s.lives--;
-        if (s.lives <= 0) s.phase = 'GAMEOVER';
+        if (s.lives <= 0) {
+          playSound('hit');
+          s.phase = 'GAMEOVER';
+        }
       } else {
         let correctCount = s.selectedTiles.filter(t => s.activeTiles.includes(t)).length;
         if (correctCount === s.activeTiles.length) {
