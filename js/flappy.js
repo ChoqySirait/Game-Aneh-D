@@ -1,3 +1,4 @@
+// ASET GAMBAR FLAPPY (SVG)
 const eagleImg = new Image();
 eagleImg.src = "data:image/svg+xml;utf8," + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 80">
@@ -29,7 +30,7 @@ pipeImg.src = "data:image/svg+xml;utf8," + encodeURIComponent(`
 
 let flappyState = {};
 
-function initFlappy(canvas) {
+function initFlappy() {
   flappyState = {
     birdX: 100, birdY: 300, birdWidth: 80, birdHeight: 64,
     gravity: 0.5, velocity: 0, jump: -9.5,
@@ -40,7 +41,7 @@ function initFlappy(canvas) {
   };
 }
 
-function updateFlappy(canvas) {
+function updateFlappy() {
   let s = flappyState;
   if (s.isGameOver) return;
 
@@ -83,7 +84,7 @@ function updateFlappy(canvas) {
   if (s.pipes.length > 0 && s.pipes[0].x < -s.pipeWidth) s.pipes.shift();
 }
 
-function renderFlappy(ctx, canvas) {
+function renderFlappy() {
   let s = flappyState;
 
   let bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
