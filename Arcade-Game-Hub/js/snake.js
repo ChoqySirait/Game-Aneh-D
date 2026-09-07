@@ -2,10 +2,12 @@ let snakeState = {};
 const snakeGridSize = 45;
 
 function initSnake() {
+  let savedHighScore = localStorage.getItem("snake_high_score") || 0;
   snakeState = {
     snake: [{x: 8, y: 12}, {x: 7, y: 12}, {x: 6, y: 12}],
     dx: 1, dy: 0, nextDx: 1, nextDy: 0,
-    food: {x: 12, y: 12}, score: 0, isGameOver: false, speedCounter: 0
+    food: {x: 12, y: 12}, score: 0, highScore: parseInt(savedHighScore),
+    isGameOver: false, isStarted: false, speedCounter: 0
   };
   generateSnakeFood();
 }
@@ -18,9 +20,12 @@ function generateSnakeFood() {
 
 function updateSnake() {
   let s = snakeState;
-  if (s.isGameOver) return;
+  if (!s.isStarted || s.isGameOver) return;
+
+  // Kecepatan bertambah seiring bertambahnya skor
+  let delay = Math.max(3, 8 - Math.floor(s.score / 50));
   s.speedCounter++;
-  if (s.speedCounter % 8 !== 0) return;
+  if (s.speedCounter % delay !== 0) return;
 
   s.dx = s.nextDx; s.dy = s.nextDy;
   let head = { x: s.snake[0].x + s.dx, y: s.snake[0].y + s.dy };
@@ -35,6 +40,10 @@ function updateSnake() {
   s.snake.unshift(head);
   if (head.x === s.food.x && head.y === s.food.y) {
     s.score += 10;
+    if (s.score > s.highScore) {
+      s.highScore = s.score;
+      localStorage.setItem("snake_high_score", s.highScore);
+    }
     generateSnakeFood();
   } else {
     s.snake.pop();
@@ -73,14 +82,28 @@ function renderSnake() {
   }
 
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 42px sans-serif";
-  ctx.fillText("Skor: " + s.score, 35, 75);
+  ctx.font = "bold 38px sans-serif";
+  ctx.fillText("Skor: " + s.score, 35, 65);
+  ctx.fillStyle = "#ffc107";
+  ctx.font = "bold 26px sans-serif";
+  ctx.fillText("High Score: " + s.highScore, 35, 105);
+
+  if (!s.isStarted) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#00f2fe";
+    ctx.font = "bold 50px sans-serif"; ctx.fillText("CYBER SNAKE", 185, 480);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "28px sans-serif"; ctx.fillText("Tekan SPASI Untuk Mulai", 190, 550);
+  }
 
   if (s.isGameOver) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 60px sans-serif"; ctx.fillText("GAME OVER", 180, 500);
-    ctx.font = "30px sans-serif"; ctx.fillText("Tekan SPASI untuk restart", 180, 570);
+    ctx.font = "bold 60px sans-serif"; ctx.fillText("GAME OVER", 180, 480);
+    ctx.font = "28px sans-serif"; ctx.fillText("Skor Akhir: " + s.score, 250, 540);
+    ctx.fillStyle = "#ffeb3b";
+    ctx.fillText("Tekan SPASI untuk restart", 180, 600);
   }
 }

@@ -1,4 +1,3 @@
-// ASET GAMBAR FLAPPY (SVG)
 const eagleImg = new Image();
 eagleImg.src = "data:image/svg+xml;utf8," + encodeURIComponent(`
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 80">
@@ -31,19 +30,26 @@ pipeImg.src = "data:image/svg+xml;utf8," + encodeURIComponent(`
 let flappyState = {};
 
 function initFlappy() {
+  let savedHighScore = localStorage.getItem("flappy_high_score") || 0;
   flappyState = {
     birdX: 100, birdY: 300, birdWidth: 80, birdHeight: 64,
     gravity: 0.5, velocity: 0, jump: -9.5,
     isShieldActive: false, shieldDuration: 300, shieldTimeLeft: 0,
     shieldCooldown: 600, shieldCooldownLeft: 0,
-    pipes: [], pipeWidth: 110, pipeGap: 270,
-    frameCount: 0, score: 0, isGameOver: false
+    pipes: [], pipeWidth: 110, baseGap: 280, baseSpeed: 4,
+    frameCount: 0, score: 0, highScore: parseInt(savedHighScore),
+    isGameOver: false, isStarted: false
   };
 }
 
 function updateFlappy() {
   let s = flappyState;
-  if (s.isGameOver) return;
+  if (!s.isStarted || s.isGameOver) return;
+
+  // Tingkat Kesulitan Dinamis berdasarkan Skor
+  let speedMultiplier = Math.min(2.0, 1 + Math.floor(s.score / 5) * 0.1);
+  let currentSpeed = s.baseSpeed * speedMultiplier;
+  let currentGap = Math.max(200, s.baseGap - Math.floor(s.score / 5) * 10);
 
   s.velocity += s.gravity;
   s.birdY += s.velocity;
@@ -56,24 +62,29 @@ function updateFlappy() {
   }
 
   s.frameCount++;
-  if (s.frameCount % 100 === 0) {
-    let topPipe = Math.floor(Math.random() * (canvas.height - s.pipeGap - 200)) + 100;
-    s.pipes.push({ x: canvas.width, top: topPipe, passed: false });
+  let spawnInterval = Math.max(60, Math.floor(100 / speedMultiplier));
+  if (s.frameCount % spawnInterval === 0) {
+    let topPipe = Math.floor(Math.random() * (canvas.height - currentGap - 200)) + 100;
+    s.pipes.push({ x: canvas.width, top: topPipe, gap: currentGap, passed: false });
   }
 
   for (let i = 0; i < s.pipes.length; i++) {
     let p = s.pipes[i];
-    p.x -= 4;
+    p.x -= currentSpeed;
 
     if (!p.passed && p.x + s.pipeWidth < s.birdX) {
       s.score++;
       p.passed = true;
+      if (s.score > s.highScore) {
+        s.highScore = s.score;
+        localStorage.setItem("flappy_high_score", s.highScore);
+      }
     }
 
     if (
       s.birdX + s.birdWidth - 10 > p.x &&
       s.birdX + 10 < p.x + s.pipeWidth &&
-      (s.birdY + 10 < p.top || s.birdY + s.birdHeight - 10 > p.top + s.pipeGap)
+      (s.birdY + 10 < p.top || s.birdY + s.birdHeight - 10 > p.top + p.gap)
     ) {
       if (s.isShieldActive) p.x = -s.pipeWidth * 2;
       else s.isGameOver = true;
@@ -99,7 +110,7 @@ function renderFlappy() {
     ctx.scale(1, -1);
     ctx.drawImage(pipeImg, -s.pipeWidth / 2, -p.top / 2, s.pipeWidth, p.top);
     ctx.restore();
-    ctx.drawImage(pipeImg, p.x, p.top + s.pipeGap, s.pipeWidth, canvas.height - (p.top + s.pipeGap));
+    ctx.drawImage(pipeImg, p.x, p.top + p.gap, s.pipeWidth, canvas.height - (p.top + p.gap));
   }
 
   ctx.save();
@@ -109,20 +120,39 @@ function renderFlappy() {
   ctx.drawImage(eagleImg, -s.birdWidth / 2, -s.birdHeight / 2, s.birdWidth, s.birdHeight);
   ctx.restore();
 
+  // Score & High Score
   ctx.fillStyle = "#ffffff";
-  ctx.font = "bold 42px sans-serif";
-  ctx.fillText("Skor: " + s.score, 35, 75);
-
+  ctx.font = "bold 38px sans-serif";
+  ctx.fillText("Skor: " + s.score, 35, 65);
+  ctx.fillStyle = "#ffc107";
   ctx.font = "bold 26px sans-serif";
-  if (s.isShieldActive) { ctx.fillStyle = "#ff1744"; ctx.fillText("PERISAI AKTIF: " + Math.ceil(s.shieldTimeLeft / 60) + "s", 35, 120); }
-  else if (s.shieldCooldownLeft > 0) { ctx.fillStyle = "#ffeb3b"; ctx.fillText("Cooldown: " + Math.ceil(s.shieldCooldownLeft / 60) + "s", 35, 120); }
-  else { ctx.fillStyle = "#00e676"; ctx.fillText("Perisai READY (Shift)", 35, 120); }
+  ctx.fillText("High Score: " + s.highScore, 35, 105);
 
+  ctx.font = "bold 24px sans-serif";
+  if (s.isShieldActive) { ctx.fillStyle = "#ff1744"; ctx.fillText("PERISAI AKTIF: " + Math.ceil(s.shieldTimeLeft / 60) + "s", 35, 145); }
+  else if (s.shieldCooldownLeft > 0) { ctx.fillStyle = "#ffeb3b"; ctx.fillText("Cooldown: " + Math.ceil(s.shieldCooldownLeft / 60) + "s", 35, 145); }
+  else { ctx.fillStyle = "#00e676"; ctx.fillText("Perisai READY (Shift)", 35, 145); }
+
+  // Start Screen Overlay
+  if (!s.isStarted) {
+    ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = "#00f2fe";
+    ctx.font = "bold 50px sans-serif";
+    ctx.fillText("FLAPPY EAGLE", 180, 480);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "28px sans-serif";
+    ctx.fillText("Tekan SPASI Untuk Mulai", 190, 550);
+  }
+
+  // Game Over Overlay
   if (s.isGameOver) {
     ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 60px sans-serif"; ctx.fillText("GAME OVER", 180, 500);
-    ctx.font = "30px sans-serif"; ctx.fillText("Tekan SPASI untuk main lagi", 170, 570);
+    ctx.font = "bold 60px sans-serif"; ctx.fillText("GAME OVER", 180, 480);
+    ctx.font = "28px sans-serif"; ctx.fillText("Skor Akhir: " + s.score, 250, 540);
+    ctx.fillStyle = "#ffeb3b";
+    ctx.fillText("Tekan SPASI untuk main lagi", 170, 600);
   }
 }

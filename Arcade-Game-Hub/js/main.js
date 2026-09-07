@@ -51,21 +51,30 @@ canvas.addEventListener("click", function(e) {
 document.addEventListener("keydown", function(e) {
   if (currentGame === 'flappy') {
     if (e.code === "Space") {
-      if (flappyState.isGameOver) initFlappy();
-      else flappyState.velocity = flappyState.jump;
+      if (!flappyState.isStarted) {
+        flappyState.isStarted = true;
+        flappyState.velocity = flappyState.jump;
+      } else if (flappyState.isGameOver) {
+        initFlappy();
+      } else {
+        flappyState.velocity = flappyState.jump;
+      }
     }
-    if ((e.code === "ShiftLeft" || e.code === "ShiftRight") && !flappyState.isGameOver && !flappyState.isShieldActive && flappyState.shieldCooldownLeft <= 0) {
+    if ((e.code === "ShiftLeft" || e.code === "ShiftRight") && flappyState.isStarted && !flappyState.isGameOver && !flappyState.isShieldActive && flappyState.shieldCooldownLeft <= 0) {
       flappyState.isShieldActive = true;
       flappyState.shieldTimeLeft = flappyState.shieldDuration;
       flappyState.shieldCooldownLeft = flappyState.shieldCooldown;
     }
   } else if (currentGame === 'snake') {
     let s = snakeState;
-    if (e.code === "Space" && s.isGameOver) initSnake();
-    if (e.code === "ArrowUp" && s.dy === 0) { s.nextDx = 0; s.nextDy = -1; }
-    if (e.code === "ArrowDown" && s.dy === 0) { s.nextDx = 0; s.nextDy = 1; }
-    if (e.code === "ArrowLeft" && s.dx === 0) { s.nextDx = -1; s.nextDy = 0; }
-    if (e.code === "ArrowRight" && s.dx === 0) { s.nextDx = 1; s.nextDy = 0; }
+    if (e.code === "Space") {
+      if (!s.isStarted) s.isStarted = true;
+      else if (s.isGameOver) initSnake();
+    }
+    if (e.code === "ArrowUp" && s.dy === 0) { s.nextDx = 0; s.nextDy = -1; if (!s.isStarted) s.isStarted = true; }
+    if (e.code === "ArrowDown" && s.dy === 0) { s.nextDx = 0; s.nextDy = 1; if (!s.isStarted) s.isStarted = true; }
+    if (e.code === "ArrowLeft" && s.dx === 0) { s.nextDx = -1; s.nextDy = 0; if (!s.isStarted) s.isStarted = true; }
+    if (e.code === "ArrowRight" && s.dx === 0) { s.nextDx = 1; s.nextDy = 0; if (!s.isStarted) s.isStarted = true; }
   } else if (currentGame === 'memory') {
     if (e.code === "Space" && memoryState.phase === 'GAMEOVER') initMemory();
   }
