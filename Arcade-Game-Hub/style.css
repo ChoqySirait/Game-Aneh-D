@@ -1,63 +1,193 @@
-body {
-  background-color: #080c14;
-  color: #ffffff;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+/* =================================================================
+   🎨 NEON PULSE ARCADE STYLING
+   Palet: Deep Cyber Dark, Neon Cyan (#00f2fe), Neon Pink/Magenta (#ff007f)
+   ================================================================= */
+
+:root {
+  --bg-core: #04060c;
+  --bg-surface: rgba(14, 20, 35, 0.65);
+  --cyan-neon: #00f2fe;
+  --cyan-dim: rgba(0, 242, 254, 0.2);
+  --magenta-neon: #ff007f;
+  --magenta-dim: rgba(255, 0, 127, 0.2);
+  --amber-neon: #ffc107;
+  --border-glass: rgba(255, 255, 255, 0.12);
+  --font-title: 'Orbitron', monospace, sans-serif;
+  --font-body: 'Rajdhani', sans-serif;
+}
+
+/* Reset & Layout Dasar */
+* {
+  box-sizing: border-box;
   margin: 0;
-  padding: 20px;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  background-color: var(--bg-core);
+  color: #ffffff;
+  font-family: var(--font-body);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 24px 16px;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* Ambient Background Lights (Membuat layar berpendar lembut) */
+.ambient-glow {
+  position: fixed;
+  width: 380px;
+  height: 380px;
+  border-radius: 50%;
+  filter: blur(140px);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.35;
+}
+
+.bg-cyan {
+  background: var(--cyan-neon);
+  top: -100px;
+  left: -80px;
+}
+
+.bg-magenta {
+  background: var(--magenta-neon);
+  bottom: -100px;
+  right: -80px;
+}
+
+/* Konsol Utama */
+.arcade-cabinet {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 440px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  min-height: 100vh;
 }
 
-h1 {
-  margin-bottom: 15px;
-  color: #00f2fe;
-  text-shadow: 0 0 15px rgba(0, 242, 254, 0.6);
-  letter-spacing: 2px;
-}
-
-.menu-container {
-  display: flex;
-  gap: 12px;
+/* Header & Glitch Typography */
+.arcade-header {
+  text-align: center;
   margin-bottom: 20px;
-  flex-wrap: wrap;
-  justify-content: center;
 }
 
-.game-btn {
-  background: rgba(255, 255, 255, 0.05);
-  color: #c9d1d9;
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 12px 24px;
-  font-size: 15px;
-  font-weight: 600;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  backdrop-filter: blur(5px);
-}
-
-.game-btn:hover {
-  background: rgba(0, 242, 254, 0.15);
-  color: #ffffff;
-  border-color: #00f2fe;
-  transform: translateY(-2px);
-  box-shadow: 0 5px 15px rgba(0, 242, 254, 0.3);
-}
-
-.game-btn.active {
-  background: linear-gradient(135deg, #00c6ff, #0072ff);
-  color: #ffffff;
-  border-color: transparent;
-  box-shadow: 0 0 20px rgba(0, 114, 255, 0.6);
-}
-
-#canvas-wrapper {
-  position: relative;
-  border: 2px solid rgba(255, 255, 255, 0.15);
+.badge-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #00e676;
+  background: rgba(0, 230, 118, 0.1);
+  border: 1px solid rgba(0, 230, 118, 0.25);
+  padding: 3px 10px;
   border-radius: 20px;
-  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.9);
+  margin-bottom: 10px;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  background-color: #00e676;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #00e676;
+  animation: pulse 1.4s infinite ease-in-out;
+}
+
+.glitch-title {
+  font-family: var(--font-title);
+  font-size: 2.2rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #ffffff;
+  text-shadow: 0 0 10px var(--cyan-neon), 0 0 25px var(--cyan-dim);
+  line-height: 1.1;
+}
+
+.subtitle {
+  font-size: 12px;
+  letter-spacing: 3px;
+  color: #798da3;
+  margin-top: 5px;
+  font-weight: 600;
+}
+
+/* Tab Menu Navigasi Game */
+.game-nav {
+  display: flex;
+  width: 100%;
+  gap: 8px;
+  margin-bottom: 18px;
+  justify-content: space-between;
+}
+
+.game-tab {
+  flex: 1;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: 12px;
+  padding: 10px 6px;
+  color: #8c9cb3;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  backdrop-filter: blur(12px);
+  position: relative;
+  overflow: hidden;
+}
+
+.game-tab .icon {
+  font-size: 1.2rem;
+}
+
+.game-tab .tab-label {
+  font-family: var(--font-title);
+  font-size: 9.5px;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+}
+
+.game-tab:hover {
+  color: #ffffff;
+  border-color: rgba(0, 242, 254, 0.4);
+  transform: translateY(-2px);
+}
+
+.game-tab.active {
+  background: linear-gradient(180deg, rgba(0, 242, 254, 0.18) 0%, rgba(14, 20, 35, 0.85) 100%);
+  border-color: var(--cyan-neon);
+  color: #ffffff;
+  box-shadow: 0 0 18px rgba(0, 242, 254, 0.25);
+}
+
+.game-tab.active .glow-indicator {
+  position: absolute;
+  bottom: 0;
+  left: 15%;
+  width: 70%;
+  height: 2px;
+  background-color: var(--cyan-neon);
+  box-shadow: 0 0 8px var(--cyan-neon);
+}
+
+/* Viewport Frame Konsol & Efek Layar CRT */
+.viewport-frame {
+  position: relative;
+  border-radius: 20px;
+  padding: 8px;
+  background: linear-gradient(145deg, #1b2438, #090c14);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), inset 0 1px 1px rgba(255, 255, 255, 0.15);
   overflow: hidden;
 }
 
@@ -65,16 +195,117 @@ canvas {
   display: block;
   width: 360px;
   height: 540px;
-  background-color: #000;
+  border-radius: 14px;
+  background-color: #020307;
 }
 
-.instructions {
-  margin-top: 15px;
-  color: #8b949e;
+/* CRT Scanlines Layer (Garis halus TV Tabung) */
+.crt-scanline {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  border-radius: 14px;
+  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+  background-size: 100% 4px;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.6;
+}
+
+/* CRT Vignette (Bayangan sudut melengkung layar tabung) */
+.crt-vignette {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  border-radius: 14px;
+  box-shadow: inset 0 0 45px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+  z-index: 6;
+}
+
+/* Pantulan Kaca Semi-Transparan (Glass Glare) */
+.crt-glare {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  right: 8px;
+  height: 45%;
+  border-radius: 14px 14px 0 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.06) 0%, rgba(255, 255, 255, 0) 60%);
+  pointer-events: none;
+  z-index: 7;
+}
+
+/* HUD Panel & Kotak Instruksi */
+.hud-panel {
+  width: 100%;
+  margin-top: 18px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-glass);
+  border-radius: 14px;
+  padding: 12px 18px;
+  backdrop-filter: blur(10px);
+}
+
+.hud-terminal-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  padding-bottom: 6px;
+}
+
+.terminal-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+.terminal-dot:nth-child(1) { background-color: #ff5f56; }
+.terminal-dot:nth-child(2) { background-color: #ffbd2e; }
+.terminal-dot:nth-child(3) { background-color: #27c93f; }
+
+.terminal-title {
+  font-family: var(--font-title);
+  font-size: 10px;
+  color: #798da3;
+  margin-left: 6px;
+  letter-spacing: 1.5px;
+}
+
+.hud-content {
   font-size: 14px;
+  font-weight: 600;
+  color: #b0c2d8;
+  line-height: 1.4;
+  letter-spacing: 0.4px;
   text-align: center;
-  background: rgba(255, 255, 255, 0.03);
-  padding: 10px 20px;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.hud-content b {
+  color: var(--cyan-neon);
+  text-shadow: 0 0 6px var(--cyan-dim);
+}
+
+/* Animasi Denyut */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+/* Optimasi Layar Ponsel & Layar Sempit */
+@media (max-width: 400px) {
+  canvas {
+    width: 320px;
+    height: 480px;
+  }
+  .glitch-title {
+    font-size: 1.8rem;
+  }
 }
