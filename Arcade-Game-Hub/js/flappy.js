@@ -4,7 +4,6 @@ const FlappyGame = {
   pipeImg: null,
   state: {},
 
-  // Tema Map Berganti Dinamis
   biomes: [
     { name: "CYBER NIGHT", top: "#050b14", mid: "#0f1c30", bot: "#182c4c", pipeGrad: ["#003b46", "#007991"], stroke: "#00f2fe" },
     { name: "NEON SUNSET", top: "#20002c", mid: "#5b0e2d", bot: "#c72c41", pipeGrad: ["#800020", "#e63946"], stroke: "#ffeb3b" },
@@ -24,11 +23,15 @@ const FlappyGame = {
       isGameOver: false, isStarted: false,
       spawnTimer: 0,
       
-      // Mekanik Warp / Ganti Map Tiap 500
+      // SISTEM SKOR STREAK MULTIPLIER
+      multiplier: 1,
+      cleanPipes: 0,
+
+      // WARP ENGINE TIAP 500 SKOR
       biomeIndex: 0,
       isWarping: false,
       warpTimer: 0,
-      warpDuration: 2.2, // durasi melesat lurus
+      warpDuration: 2.2,
       speedLines: [],
       nextWarpScore: 500
     };
@@ -55,19 +58,18 @@ const FlappyGame = {
     const s = this.state;
     if (!s.isStarted || s.isGameOver) return;
 
-    // --- LOGIKA WARP SPEED (Melesat Lurus Tiap 500) ---
+    // FASE WARP ENGINE
     if (s.isWarping) {
       s.warpTimer -= dt;
-      s.velocity = 0; // Menahan agar terbang stabil lurus
-      s.birdY += (canvas.height / 2 - s.birdY) * 4 * dt; // Otomatis ke tengah layar
+      s.velocity = 0;
+      s.birdY += (canvas.height / 2 - s.birdY) * 5 * dt;
 
-      // Bikin partikel garis kecepatan
       if (Math.random() < 0.8) {
         s.speedLines.push({
           x: canvas.width,
           y: Math.random() * canvas.height,
-          len: Math.random() * 80 + 50,
-          speed: Math.random() * 1500 + 1200
+          len: Math.random() * 90 + 60,
+          speed: Math.random() * 1600 + 1300
         });
       }
 
@@ -83,26 +85,25 @@ const FlappyGame = {
         s.biomeIndex = (s.biomeIndex + 1) % this.biomes.length;
         s.nextWarpScore += 500;
         FX.triggerShake(12, 10);
-        FX.spawnText(canvas.width / 2 - 120, canvas.height / 2, "NEW BIOME REACHED!", "#00e676");
+        FX.spawnText(canvas.width / 2 - 120, canvas.height / 2, "NEW BIOME SECURED!", "#00e676");
       }
-      return; // Jangan spawn atau hitung tabrakan pipa selama warp
-    }
-
-    // Trigger Masuk Warp
-    if (s.score >= s.nextWarpScore) {
-      s.isWarping = true;
-      s.warpTimer = s.warpDuration;
-      s.pipes = []; // Bersihkan pipa di depan
-      AudioEngine.playTone(300, 'sawtooth', 0.6, 0.3);
-      FX.triggerShake(18, 15);
-      FX.spawnText(canvas.width / 2 - 100, canvas.height / 2 - 50, "HYPER DRIVE!!", "#00f2fe");
       return;
     }
 
-    // Fisika Normal
-    const diff = Math.min(1.8, 1 + Math.floor(s.score / 5) * 0.08);
+    // Cek Pemicu Masuk Warp
+    if (s.score >= s.nextWarpScore) {
+      s.isWarping = true;
+      s.warpTimer = s.warpDuration;
+      s.pipes = [];
+      AudioEngine.playTone(320, 'sawtooth', 0.6, 0.3);
+      FX.triggerShake(20, 16);
+      FX.spawnText(canvas.width / 2 - 110, canvas.height / 2 - 50, "HYPER DRIVE 500+", "#00f2fe");
+      return;
+    }
+
+    const diff = Math.min(1.8, 1 + Math.floor(s.score / 50) * 0.05);
     const speed = s.baseSpeed * diff;
-    const currentGap = Math.max(210, s.baseGap - Math.floor(s.score / 5) * 8);
+    const currentGap = Math.max(210, s.baseGap - Math.floor(s.score / 50) * 8);
 
     s.velocity += s.gravity * dt;
     s.birdY += s.velocity * dt;
@@ -133,29 +134,42 @@ const FlappyGame = {
       const p = s.pipes[i];
       p.x -= speed * dt;
 
+      // PEMBARUAN: Skor Eksponensial Bertingkat
       if (!p.passed && p.x + s.pipeWidth < s.birdX) {
-        s.score++;
         p.passed = true;
-        AudioEngine.playArpeggio(s.score);
-        FX.spawnText(s.birdX, s.birdY - 15, "+1", "#00e676");
+        s.cleanPipes++;
+
+        // Tiap 2 pipa bersih, gandakan pengali skor
+        if (s.cleanPipes % 2 === 0 && s.multiplier < 16) {
+          s.multiplier = Math.min(16, s.multiplier * 2);
+          FX.spawnText(s.birdX, s.birdY - 45, `${s.multiplier}x MULTIPLIER!`, "#ffeb3b");
+        }
+
+        const pointGain = 10 * s.multiplier;
+        s.score += pointGain;
+
+        AudioEngine.playArpeggio(Math.min(6, s.multiplier));
+        FX.spawnText(s.birdX, s.birdY - 15, `+${pointGain}`, "#00e676");
+
         if (s.score > s.highScore) {
           s.highScore = s.score;
           localStorage.setItem("flappy_high_score", s.highScore);
         }
       }
 
-      // Graze check
-      const grazeZone = 18;
+      // Bonus Menyerempet Ekstrem (Graze)
+      const grazeZone = 20;
       const inX = bBox.r > p.x - grazeZone && bBox.l < p.x + s.pipeWidth + grazeZone;
       const nearTop = Math.abs(bBox.t - p.top) < grazeZone;
       const nearBottom = Math.abs(bBox.b - (p.top + p.gap)) < grazeZone;
 
       if (!p.grazed && inX && (nearTop || nearBottom)) {
         p.grazed = true;
-        s.score += 2;
+        const grazeBonus = 35 * s.multiplier;
+        s.score += grazeBonus;
         AudioEngine.play('graze');
-        FX.spawnText(s.birdX + 20, s.birdY, "GRAZE! +2", "#ffeb3b");
-        FX.spawnParticles(s.birdX + s.birdWidth / 2, s.birdY + s.birdHeight / 2, "#ffeb3b", 12, 4);
+        FX.spawnText(s.birdX + 15, s.birdY, `GRAZE! +${grazeBonus}`, "#ff007f");
+        FX.spawnParticles(s.birdX + s.birdWidth / 2, s.birdY + s.birdHeight / 2, "#ffeb3b", 15, 6);
       }
 
       // Tabrakan
@@ -183,6 +197,8 @@ const FlappyGame = {
   gameOver() {
     if (this.state.isGameOver) return;
     this.state.isGameOver = true;
+    this.state.multiplier = 1;
+    this.state.cleanPipes = 0;
     AudioEngine.play('hit');
     FX.triggerShake(22, 14);
     FX.spawnParticles(this.state.birdX, this.state.birdY, "#ff1744", 30, 8);
@@ -199,7 +215,7 @@ const FlappyGame = {
       this.init();
     } else {
       s.velocity = s.jump;
-      AudioEngine.playArpeggio(s.score);
+      AudioEngine.playArpeggio(s.multiplier);
       FX.spawnParticles(s.birdX, s.birdY + s.birdHeight, "#00f2fe", 4, 3);
     }
   },
@@ -237,7 +253,6 @@ const FlappyGame = {
     const s = this.state;
     const currentBiome = this.biomes[s.biomeIndex];
 
-    // Latar Belakang Gradasi Sesuai Bioma Aktif
     const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
     bgGrad.addColorStop(0, currentBiome.top);
     bgGrad.addColorStop(0.6, currentBiome.mid);
@@ -245,7 +260,6 @@ const FlappyGame = {
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Render Garis Hyperspace Saat Warp Speed
     if (s.isWarping) {
       ctx.save();
       ctx.strokeStyle = "#ffffff";
@@ -261,7 +275,6 @@ const FlappyGame = {
       ctx.restore();
     }
 
-    // Render Pipa Berdasarkan Warna Bioma
     for (let p of s.pipes) {
       ctx.save();
       ctx.fillStyle = currentBiome.pipeGrad[0];
@@ -270,17 +283,14 @@ const FlappyGame = {
       ctx.shadowBlur = 10;
       ctx.shadowColor = currentBiome.stroke;
 
-      // Pipa Atas
       ctx.fillRect(p.x, 0, s.pipeWidth, p.top);
       ctx.strokeRect(p.x, 0, s.pipeWidth, p.top);
 
-      // Pipa Bawah
       ctx.fillRect(p.x, p.top + p.gap, s.pipeWidth, canvas.height - (p.top + p.gap));
       ctx.strokeRect(p.x, p.top + p.gap, s.pipeWidth, canvas.height - (p.top + p.gap));
       ctx.restore();
     }
 
-    // Render Karakter Burung Elang
     ctx.save();
     ctx.translate(s.birdX + s.birdWidth / 2, s.birdY + s.birdHeight / 2);
     const targetAngle = s.isWarping ? 0 : Math.min(Math.PI / 4, Math.max(-Math.PI / 4, s.velocity / 650));
@@ -289,11 +299,10 @@ const FlappyGame = {
     if (s.isWarping) {
       ctx.shadowBlur = 40;
       ctx.shadowColor = "#00f2fe";
-      // Api Pendorong Belakang
       ctx.fillStyle = "#ff007f";
       ctx.beginPath();
       ctx.moveTo(-s.birdWidth / 2, -10);
-      ctx.lineTo(-s.birdWidth / 2 - 30, 0);
+      ctx.lineTo(-s.birdWidth / 2 - 35, 0);
       ctx.lineTo(-s.birdWidth / 2, 10);
       ctx.fill();
     }
@@ -308,14 +317,14 @@ const FlappyGame = {
     ctx.drawImage(this.eagleImg, -s.birdWidth / 2, -s.birdHeight / 2, s.birdWidth, s.birdHeight);
     ctx.restore();
 
-    // UI Panel & Biome Badge
+    // UI & Status
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 40px 'Orbitron', monospace";
     ctx.fillText("Skor: " + s.score, 35, 65);
 
-    ctx.fillStyle = currentBiome.stroke;
+    ctx.fillStyle = s.multiplier > 1 ? "#ffeb3b" : currentBiome.stroke;
     ctx.font = "bold 20px 'Rajdhani', sans-serif";
-    ctx.fillText(`SEKTOR: ${currentBiome.name}`, 35, 100);
+    ctx.fillText(`SEKTOR: ${currentBiome.name} | MULTIPLIER: ${s.multiplier}x`, 35, 100);
 
     if (s.isShieldActive) {
       ctx.fillStyle = "#ff007f";
@@ -349,7 +358,23 @@ const FlappyGame = {
       ctx.fillStyle = "#ffeb3b";
       ctx.fillText("Tekan SPASI untuk Restart", 210, 600);
     }
+  },
+
+  renderDebug(ctx) {
+    const s = this.state;
+    ctx.save();
+    ctx.strokeStyle = "#00ff66";
+    ctx.lineWidth = 2;
+    const hitM = 10;
+    ctx.strokeRect(s.birdX + hitM, s.birdY + hitM, s.birdWidth - hitM * 2, s.birdHeight - hitM * 2);
+
+    ctx.strokeStyle = "#ff0055";
+    for (let p of s.pipes) {
+      ctx.strokeRect(p.x, 0, s.pipeWidth, p.top);
+      ctx.strokeRect(p.x, p.top + p.gap, s.pipeWidth, canvas.height - (p.top + p.gap));
+    }
+    ctx.restore();
   }
 };
 
-registerScene('flappy', FlappyGame);
+registerScene('flappy', FlappyGame);  
