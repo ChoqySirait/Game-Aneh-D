@@ -25,7 +25,6 @@
       <p class="subtitle">MICRO-ARCADE ENGINE // VANILLA JS</p>
     </header>
 
-    <!-- Menu Pemilihan 4 Game -->
     <nav class="game-nav" aria-label="Game Selection">
       <button class="game-tab active" onclick="switchGame('flappy', event)">
         <span class="icon">🦅</span>
@@ -33,8 +32,8 @@
         <span class="glow-indicator"></span>
       </button>
       <button class="game-tab" onclick="switchGame('snake', event)">
-        <span class="icon">🐍</span>
-        <span class="tab-label">SNAKE</span>
+        <span class="icon">🐉</span>
+        <span class="tab-label">DRAGON</span>
         <span class="glow-indicator"></span>
       </button>
       <button class="game-tab" onclick="switchGame('memory', event)">
@@ -42,9 +41,9 @@
         <span class="tab-label">MEMORY</span>
         <span class="glow-indicator"></span>
       </button>
-      <button class="game-tab" onclick="switchGame('breaker', event)">
-        <span class="icon">🧱</span>
-        <span class="tab-label">BREAKER</span>
+      <button class="game-tab" onclick="switchGame('rhythm', event)">
+        <span class="icon">⚡</span>
+        <span class="tab-label">BEAT DASH</span>
         <span class="glow-indicator"></span>
       </button>
     </nav>
@@ -69,11 +68,10 @@
     </footer>
   </main>
 
-  <!-- Pemuatan Modul (Engine Core Harus Pertama) -->
   <script src="js/main.js"></script>
   <script src="js/flappy.js"></script>
   <script src="js/snake.js"></script>
   <script src="js/memory.js"></script>
-  <script src="js/breaker.js"></script>
+  <script src="js/rhythm.js"></script>
 </body>
 </html>

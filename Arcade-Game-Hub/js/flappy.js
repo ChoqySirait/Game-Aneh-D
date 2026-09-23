@@ -1,13 +1,27 @@
 const FlappyGame = {
   instruction: "Lompat: <b>SPASI / Klik</b> | Perisai: <b>SHIFT / Tap Atas</b> | Warp: <b>Tiap 500 Skor</b>",
   eagleImg: null,
-  pipeImg: null,
   state: {},
 
   biomes: [
-    { name: "CYBER NIGHT", top: "#050b14", mid: "#0f1c30", bot: "#182c4c", pipeGrad: ["#003b46", "#007991"], stroke: "#00f2fe" },
-    { name: "NEON SUNSET", top: "#20002c", mid: "#5b0e2d", bot: "#c72c41", pipeGrad: ["#800020", "#e63946"], stroke: "#ffeb3b" },
-    { name: "TOXIC MATRIX", top: "#021307", mid: "#053014", bot: "#0a5c24", pipeGrad: ["#004b23", "#38b000"], stroke: "#70e000" }
+    { 
+      name: "CYBER NIGHT", 
+      top: "#050b14", mid: "#0f1c30", bot: "#182c4c", 
+      pipeColor: "#003b46", stroke: "#00f2fe", capColor: "#007991",
+      particleColor: "#00f2fe", style: "grid"
+    },
+    { 
+      name: "NEON SUNSET", 
+      top: "#20002c", mid: "#5b0e2d", bot: "#8a1c3d", 
+      pipeColor: "#4a0e17", stroke: "#ff007f", capColor: "#ff7700",
+      particleColor: "#ffaa00", style: "stars"
+    },
+    { 
+      name: "TOXIC MATRIX", 
+      top: "#021307", mid: "#053014", bot: "#0a471c", 
+      pipeColor: "#003314", stroke: "#00ff66", capColor: "#38b000",
+      particleColor: "#39ff14", style: "matrix"
+    }
   ],
 
   init() {
@@ -15,26 +29,40 @@ const FlappyGame = {
     const savedHighScore = localStorage.getItem("flappy_high_score") || 0;
     this.state = {
       birdX: 130, birdY: 420, birdWidth: 72, birdHeight: 56,
-      gravity: 1250, velocity: 0, jump: -470,
+      gravity: 1250, velocity: 0, jump: -460,
       isShieldActive: false, shieldDuration: 4.0, shieldTimeLeft: 0,
       shieldCooldown: 7, shieldCooldownLeft: 0,
-      pipes: [], pipeWidth: 105, baseGap: 280, baseSpeed: 240,
+      pipes: [], pipeWidth: 105, baseGap: 280, baseSpeed: 230,
       score: 0, highScore: parseInt(savedHighScore),
       isGameOver: false, isStarted: false,
       spawnTimer: 0,
       
-      // SISTEM SKOR STREAK MULTIPLIER
+      // SISTEM SKOR STABIL (Tidak gila-gilaan)
       multiplier: 1,
-      cleanPipes: 0,
+      pipeStreak: 0,
 
-      // WARP ENGINE TIAP 500 SKOR
+      // WARP MAP
       biomeIndex: 0,
       isWarping: false,
       warpTimer: 0,
       warpDuration: 2.2,
       speedLines: [],
-      nextWarpScore: 500
+      nextWarpScore: 500,
+
+      // Visual Background Partikel Biome
+      ambientParticles: [],
+      gridOffset: 0
     };
+
+    // Bikin partikel atmosfer
+    for (let i = 0; i < 30; i++) {
+      this.state.ambientParticles.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        size: Math.random() * 3 + 1,
+        speed: Math.random() * 40 + 20
+      });
+    }
   },
 
   loadAssets() {
@@ -58,7 +86,14 @@ const FlappyGame = {
     const s = this.state;
     if (!s.isStarted || s.isGameOver) return;
 
-    // FASE WARP ENGINE
+    // Gerakan lantai grid & partikel debu
+    s.gridOffset = (s.gridOffset + 150 * dt) % 60;
+    s.ambientParticles.forEach(p => {
+      p.x -= p.speed * dt;
+      if (p.x < 0) { p.x = canvas.width; p.y = Math.random() * canvas.height; }
+    });
+
+    // FASE WARP ENGINE (Tiap kelipatan 500)
     if (s.isWarping) {
       s.warpTimer -= dt;
       s.velocity = 0;
@@ -84,26 +119,25 @@ const FlappyGame = {
         s.speedLines = [];
         s.biomeIndex = (s.biomeIndex + 1) % this.biomes.length;
         s.nextWarpScore += 500;
-        FX.triggerShake(12, 10);
-        FX.spawnText(canvas.width / 2 - 120, canvas.height / 2, "NEW BIOME SECURED!", "#00e676");
+        FX.triggerShake(14, 10);
+        FX.spawnText(canvas.width / 2 - 120, canvas.height / 2, "NEW BIOME REACHED!", "#00e676");
       }
       return;
     }
 
-    // Cek Pemicu Masuk Warp
     if (s.score >= s.nextWarpScore) {
       s.isWarping = true;
       s.warpTimer = s.warpDuration;
       s.pipes = [];
       AudioEngine.playTone(320, 'sawtooth', 0.6, 0.3);
-      FX.triggerShake(20, 16);
-      FX.spawnText(canvas.width / 2 - 110, canvas.height / 2 - 50, "HYPER DRIVE 500+", "#00f2fe");
+      FX.triggerShake(18, 14);
+      FX.spawnText(canvas.width / 2 - 110, canvas.height / 2 - 50, "HYPER DRIVE!!", "#00f2fe");
       return;
     }
 
-    const diff = Math.min(1.8, 1 + Math.floor(s.score / 50) * 0.05);
+    const diff = Math.min(1.7, 1 + Math.floor(s.score / 100) * 0.08);
     const speed = s.baseSpeed * diff;
-    const currentGap = Math.max(210, s.baseGap - Math.floor(s.score / 50) * 8);
+    const currentGap = Math.max(215, s.baseGap - Math.floor(s.score / 80) * 8);
 
     s.velocity += s.gravity * dt;
     s.birdY += s.velocity * dt;
@@ -116,7 +150,7 @@ const FlappyGame = {
     }
 
     s.spawnTimer += dt;
-    if (s.spawnTimer >= (1.7 / diff)) {
+    if (s.spawnTimer >= (1.8 / diff)) {
       s.spawnTimer = 0;
       const topPipe = Math.floor(Math.random() * (canvas.height - currentGap - 260)) + 120;
       s.pipes.push({ x: canvas.width, top: topPipe, gap: currentGap, passed: false, grazed: false });
@@ -134,21 +168,21 @@ const FlappyGame = {
       const p = s.pipes[i];
       p.x -= speed * dt;
 
-      // PEMBARUAN: Skor Eksponensial Bertingkat
+      // SKOR TERUKUR (1 Poin Dasar + Multiplier Berjenjang Maks 5x)
       if (!p.passed && p.x + s.pipeWidth < s.birdX) {
         p.passed = true;
-        s.cleanPipes++;
+        s.pipeStreak++;
 
-        // Tiap 2 pipa bersih, gandakan pengali skor
-        if (s.cleanPipes % 2 === 0 && s.multiplier < 16) {
-          s.multiplier = Math.min(16, s.multiplier * 2);
-          FX.spawnText(s.birdX, s.birdY - 45, `${s.multiplier}x MULTIPLIER!`, "#ffeb3b");
+        // Naikkan pengali tiap 5 pipa bersih berturut-turut
+        if (s.pipeStreak % 5 === 0 && s.multiplier < 5) {
+          s.multiplier++;
+          FX.spawnText(s.birdX, s.birdY - 45, `${s.multiplier}x COMBO!`, "#ffeb3b");
         }
 
-        const pointGain = 10 * s.multiplier;
+        const pointGain = 1 * s.multiplier;
         s.score += pointGain;
 
-        AudioEngine.playArpeggio(Math.min(6, s.multiplier));
+        AudioEngine.playArpeggio(s.multiplier);
         FX.spawnText(s.birdX, s.birdY - 15, `+${pointGain}`, "#00e676");
 
         if (s.score > s.highScore) {
@@ -157,19 +191,19 @@ const FlappyGame = {
         }
       }
 
-      // Bonus Menyerempet Ekstrem (Graze)
-      const grazeZone = 20;
+      // Near-miss / Graze (Bonus flat 5 poin)
+      const grazeZone = 18;
       const inX = bBox.r > p.x - grazeZone && bBox.l < p.x + s.pipeWidth + grazeZone;
       const nearTop = Math.abs(bBox.t - p.top) < grazeZone;
       const nearBottom = Math.abs(bBox.b - (p.top + p.gap)) < grazeZone;
 
       if (!p.grazed && inX && (nearTop || nearBottom)) {
         p.grazed = true;
-        const grazeBonus = 35 * s.multiplier;
+        const grazeBonus = 5 * s.multiplier;
         s.score += grazeBonus;
         AudioEngine.play('graze');
         FX.spawnText(s.birdX + 15, s.birdY, `GRAZE! +${grazeBonus}`, "#ff007f");
-        FX.spawnParticles(s.birdX + s.birdWidth / 2, s.birdY + s.birdHeight / 2, "#ffeb3b", 15, 6);
+        FX.spawnParticles(s.birdX + s.birdWidth / 2, s.birdY + s.birdHeight / 2, "#ffeb3b", 12, 5);
       }
 
       // Tabrakan
@@ -198,9 +232,9 @@ const FlappyGame = {
     if (this.state.isGameOver) return;
     this.state.isGameOver = true;
     this.state.multiplier = 1;
-    this.state.cleanPipes = 0;
+    this.state.pipeStreak = 0;
     AudioEngine.play('hit');
-    FX.triggerShake(22, 14);
+    FX.triggerShake(20, 14);
     FX.spawnParticles(this.state.birdX, this.state.birdY, "#ff1744", 30, 8);
   },
 
@@ -253,6 +287,7 @@ const FlappyGame = {
     const s = this.state;
     const currentBiome = this.biomes[s.biomeIndex];
 
+    // Background Gradient Sesuai Biome
     const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
     bgGrad.addColorStop(0, currentBiome.top);
     bgGrad.addColorStop(0.6, currentBiome.mid);
@@ -260,6 +295,35 @@ const FlappyGame = {
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Visual Lingkungan Biome: Bintang & Debu Kosmik
+    ctx.save();
+    ctx.fillStyle = currentBiome.particleColor;
+    s.ambientParticles.forEach(p => {
+      ctx.globalAlpha = 0.4;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.restore();
+
+    // Visual Lingkungan: Grid Lantai Cyber Bergerak
+    ctx.save();
+    ctx.strokeStyle = currentBiome.stroke;
+    ctx.globalAlpha = 0.15;
+    ctx.lineWidth = 1;
+    for (let x = -s.gridOffset; x < canvas.width; x += 50) {
+      ctx.beginPath();
+      ctx.moveTo(x, canvas.height - 80);
+      ctx.lineTo(x - 40, canvas.height);
+      ctx.stroke();
+    }
+    ctx.beginPath();
+    ctx.moveTo(0, canvas.height - 80);
+    ctx.lineTo(canvas.width, canvas.height - 80);
+    ctx.stroke();
+    ctx.restore();
+
+    // Efek Warp Lines
     if (s.isWarping) {
       ctx.save();
       ctx.strokeStyle = "#ffffff";
@@ -275,22 +339,38 @@ const FlappyGame = {
       ctx.restore();
     }
 
+    // Render Pipa Berornamen
     for (let p of s.pipes) {
       ctx.save();
-      ctx.fillStyle = currentBiome.pipeGrad[0];
+      ctx.fillStyle = currentBiome.pipeColor;
       ctx.strokeStyle = currentBiome.stroke;
       ctx.lineWidth = 3;
       ctx.shadowBlur = 10;
       ctx.shadowColor = currentBiome.stroke;
 
+      // Badan Pipa
       ctx.fillRect(p.x, 0, s.pipeWidth, p.top);
       ctx.strokeRect(p.x, 0, s.pipeWidth, p.top);
-
       ctx.fillRect(p.x, p.top + p.gap, s.pipeWidth, canvas.height - (p.top + p.gap));
       ctx.strokeRect(p.x, p.top + p.gap, s.pipeWidth, canvas.height - (p.top + p.gap));
+
+      // Ornamen Kepala Pipa (Neon Caps)
+      ctx.fillStyle = currentBiome.capColor;
+      ctx.fillRect(p.x - 4, p.top - 24, s.pipeWidth + 8, 24);
+      ctx.strokeRect(p.x - 4, p.top - 24, s.pipeWidth + 8, 24);
+
+      ctx.fillRect(p.x - 4, p.top + p.gap, s.pipeWidth + 8, 24);
+      ctx.strokeRect(p.x - 4, p.top + p.gap, s.pipeWidth + 8, 24);
+
+      // Neon Core Strip di tengah pipa
+      ctx.fillStyle = currentBiome.stroke;
+      ctx.fillRect(p.x + s.pipeWidth / 2 - 3, 0, 6, p.top - 24);
+      ctx.fillRect(p.x + s.pipeWidth / 2 - 3, p.top + p.gap + 24, 6, canvas.height);
+
       ctx.restore();
     }
 
+    // Burung Elang
     ctx.save();
     ctx.translate(s.birdX + s.birdWidth / 2, s.birdY + s.birdHeight / 2);
     const targetAngle = s.isWarping ? 0 : Math.min(Math.PI / 4, Math.max(-Math.PI / 4, s.velocity / 650));
@@ -317,14 +397,14 @@ const FlappyGame = {
     ctx.drawImage(this.eagleImg, -s.birdWidth / 2, -s.birdHeight / 2, s.birdWidth, s.birdHeight);
     ctx.restore();
 
-    // UI & Status
+    // UI
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 40px 'Orbitron', monospace";
     ctx.fillText("Skor: " + s.score, 35, 65);
 
     ctx.fillStyle = s.multiplier > 1 ? "#ffeb3b" : currentBiome.stroke;
     ctx.font = "bold 20px 'Rajdhani', sans-serif";
-    ctx.fillText(`SEKTOR: ${currentBiome.name} | MULTIPLIER: ${s.multiplier}x`, 35, 100);
+    ctx.fillText(`BIOME: ${currentBiome.name} | MULTIPLIER: ${s.multiplier}x`, 35, 100);
 
     if (s.isShieldActive) {
       ctx.fillStyle = "#ff007f";
@@ -358,23 +438,7 @@ const FlappyGame = {
       ctx.fillStyle = "#ffeb3b";
       ctx.fillText("Tekan SPASI untuk Restart", 210, 600);
     }
-  },
-
-  renderDebug(ctx) {
-    const s = this.state;
-    ctx.save();
-    ctx.strokeStyle = "#00ff66";
-    ctx.lineWidth = 2;
-    const hitM = 10;
-    ctx.strokeRect(s.birdX + hitM, s.birdY + hitM, s.birdWidth - hitM * 2, s.birdHeight - hitM * 2);
-
-    ctx.strokeStyle = "#ff0055";
-    for (let p of s.pipes) {
-      ctx.strokeRect(p.x, 0, s.pipeWidth, p.top);
-      ctx.strokeRect(p.x, p.top + p.gap, s.pipeWidth, canvas.height - (p.top + p.gap));
-    }
-    ctx.restore();
   }
 };
 
-registerScene('flappy', FlappyGame);  
+registerScene('flappy', FlappyGame);
