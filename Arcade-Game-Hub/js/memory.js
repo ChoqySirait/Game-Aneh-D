@@ -1,5 +1,5 @@
 const MemoryGame = {
-  instruction: "Hafalkan ubin menyala, lalu <b>Ketuk</b> urutan ubin yang sama!",
+  instruction: "Hafalkan ubin menyala, lalu <b>Ketuk</b> urutannya sebelum waktu habis!",
   state: {},
 
   init() {
@@ -13,12 +13,15 @@ const MemoryGame = {
   startLevel() {
     const s = this.state;
     s.phase = 'SHOW';
-    s.showTimer = Math.max(0.7, 1.5 - s.level * 0.05);
+    
+    // Waktu memori berkurang drastis seiring naiknya level (semakin cepat)
+    s.showTimer = Math.max(0.35, 1.4 - (s.level - 1) * 0.1);
     s.activeTiles = [];
     s.selectedTiles = [];
 
     const total = s.gridSize * s.gridSize;
-    const target = Math.min(3 + s.level, 11);
+    // Jumlah ubin bertambah banyak tiap level
+    const target = Math.min(3 + s.level, 13);
     while (s.activeTiles.length < target) {
       const rand = Math.floor(Math.random() * total);
       if (!s.activeTiles.includes(rand)) s.activeTiles.push(rand);
@@ -63,20 +66,20 @@ const MemoryGame = {
         if (!s.activeTiles.includes(idx)) {
           s.lives--;
           AudioEngine.play('hit');
-          FX.triggerShake(12, 8);
-          FX.spawnText(x, y, "MISS!", "#ff1744");
+          FX.triggerShake(14, 8);
+          FX.spawnText(x, y, "MISS!", "#ff0055");
           if (s.lives <= 0) s.phase = 'GAMEOVER';
         } else {
           const hitIdx = s.selectedTiles.filter(t => s.activeTiles.includes(t)).length;
           AudioEngine.playArpeggio(hitIdx);
-          FX.spawnParticles(x, y, "#00f2fe", 12, 5);
+          FX.spawnParticles(x, y, "#ffaa00", 14, 6);
 
           if (hitIdx === s.activeTiles.length) {
             const reward = 50 * s.level;
             s.score += reward;
             s.level++;
-            FX.spawnText(canvas.width / 2 - 80, canvas.height / 2, `CLEAR! +${reward}`, "#00e676");
-            setTimeout(() => this.startLevel(), 600);
+            FX.spawnText(canvas.width / 2 - 80, canvas.height / 2, `SPEED UP! +${reward}`, "#ffea00");
+            setTimeout(() => this.startLevel(), 500);
           }
         }
       }
@@ -85,9 +88,11 @@ const MemoryGame = {
 
   render(ctx) {
     const s = this.state;
+    
+    // Background Dark Violet Cyber
     const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    bgGrad.addColorStop(0, "#0c021a");
-    bgGrad.addColorStop(1, "#1e043a");
+    bgGrad.addColorStop(0, "#080014");
+    bgGrad.addColorStop(1, "#190033");
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -106,16 +111,17 @@ const MemoryGame = {
 
         ctx.save();
         if (s.phase === 'SHOW' && isActive) {
-          ctx.shadowBlur = 30;
-          ctx.shadowColor = "#00f2fe";
-          ctx.fillStyle = "#00f2fe";
+          // Warna Flash Baru: Amber Gold Glow
+          ctx.shadowBlur = 35;
+          ctx.shadowColor = "#ffea00";
+          ctx.fillStyle = "#ffea00";
         } else if (s.phase === 'GUESS' && isSelected) {
           const ok = isActive;
           ctx.shadowBlur = 25;
-          ctx.shadowColor = ok ? "#00e676" : "#ff1744";
-          ctx.fillStyle = ok ? "#00e676" : "#ff1744";
+          ctx.shadowColor = ok ? "#00e676" : "#ff0055";
+          ctx.fillStyle = ok ? "#00e676" : "#ff0055";
         } else {
-          ctx.fillStyle = "rgba(255, 255, 255, 0.08)";
+          ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
         }
         ctx.fillRect(x + 5, y + 5, tileSize - 10, tileSize - 10);
         ctx.restore();
@@ -127,17 +133,17 @@ const MemoryGame = {
     ctx.fillText("Level: " + s.level, 40, 80);
     ctx.fillText("Skor: " + s.score, 40, 130);
 
-    ctx.fillStyle = "#ff1744";
+    ctx.fillStyle = "#ff0055";
     ctx.fillText("❤️ ".repeat(Math.max(0, s.lives)), canvas.width - 200, 80);
 
-    ctx.fillStyle = s.phase === 'SHOW' ? "#00f2fe" : "#ffeb3b";
-    ctx.font = "bold 26px 'Rajdhani', sans-serif";
-    ctx.fillText(s.phase === 'SHOW' ? "HAFALKAN POLA!" : "KETUK UBIN SEKARANG!", 40, startY - 25);
+    ctx.fillStyle = s.phase === 'SHOW' ? "#ffea00" : "#00f2fe";
+    ctx.font = "bold 24px 'Rajdhani', sans-serif";
+    ctx.fillText(s.phase === 'SHOW' ? `KILAT MEMORI (${s.showTimer.toFixed(2)}s)` : "KETUK POLANYA!", 40, startY - 25);
 
     if (s.phase === 'GAMEOVER') {
       ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = "#ff1744";
+      ctx.fillStyle = "#ff0055";
       ctx.font = "bold 56px 'Orbitron', monospace";
       ctx.fillText("GAME OVER", 175, 500);
       ctx.fillStyle = "#ffffff";
