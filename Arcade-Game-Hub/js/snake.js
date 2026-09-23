@@ -1,8 +1,6 @@
 const SnakeGame = {
-  instruction: "Arah: <b>Tombol Panah / Geser (Swipe)</b> | Mulai: <b>SPASI</b>",
+  instruction: "Kendali: <b>Panah</b> | Slow-Motion: <b>B / Klik 2x</b> | Mulai: <b>SPASI</b>",
   gridSize: 40,
-  touchStartX: 0,
-  touchStartY: 0,
   state: {},
 
   init() {
@@ -13,8 +11,9 @@ const SnakeGame = {
       food: { x: 12, y: 12 },
       score: 0, highScore: parseInt(savedHighScore),
       isGameOver: false, isStarted: false,
-      moveTimer: 0, baseStepInterval: 0.12,
-      combo: 1, comboTimer: 0
+      stepTimer: 0, baseSpeed: 0.12,
+      bulletTimeActive: false, bulletTimeLeft: 0, bulletTimeCooldown: 0,
+      combo: 0
     };
     this.spawnFood();
   },
@@ -36,15 +35,19 @@ const SnakeGame = {
     const s = this.state;
     if (!s.isStarted || s.isGameOver) return;
 
-    if (s.comboTimer > 0) {
-      s.comboTimer -= dt;
-      if (s.comboTimer <= 0) s.combo = 1;
+    if (s.bulletTimeActive) {
+      s.bulletTimeLeft -= dt;
+      if (s.bulletTimeLeft <= 0) s.bulletTimeActive = false;
+    } else if (s.bulletTimeCooldown > 0) {
+      s.bulletTimeCooldown -= dt;
     }
 
-    const currentInterval = Math.max(0.06, s.baseStepInterval - Math.floor(s.score / 50) * 0.01);
-    s.moveTimer += dt;
-    if (s.moveTimer < currentInterval) return;
-    s.moveTimer = 0;
+    let interval = Math.max(0.06, s.baseSpeed - Math.floor(s.score / 50) * 0.01);
+    if (s.bulletTimeActive) interval *= 2.5; // Efek Gerak Lambat
+
+    s.stepTimer += dt;
+    if (s.stepTimer < interval) return;
+    s.stepTimer = 0;
 
     s.dx = s.nextDx;
     s.dy = s.nextDy;
@@ -52,40 +55,25 @@ const SnakeGame = {
     const cols = Math.floor(canvas.width / this.gridSize);
     const rows = Math.floor(canvas.height / this.gridSize);
 
-    // Tabrak Tembok
-    if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows) {
-      this.triggerGameOver();
-      return;
-    }
-
-    // Tabrak Badan Sendiri
-    if (s.snake.some(part => part.x === head.x && part.y === head.y)) {
-      this.triggerGameOver();
+    if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows ||
+        s.snake.some(p => p.x === head.x && p.y === head.y)) {
+      this.gameOver();
       return;
     }
 
     s.snake.unshift(head);
 
-    // Makan Makanan
     if (head.x === s.food.x && head.y === s.food.y) {
-      const earned = 10 * s.combo;
-      s.score += earned;
-      s.combo = Math.min(4, s.combo + 1);
-      s.comboTimer = 3.0; // Reset timer combo 3 detik
-
-      AudioEngine.play('score');
-      FX.triggerShake(4, 5);
+      s.score += 10;
+      s.combo++;
+      AudioEngine.playArpeggio(s.combo);
+      FX.triggerShake(4, 4);
       FX.spawnParticles(
         s.food.x * this.gridSize + this.gridSize / 2,
         s.food.y * this.gridSize + this.gridSize / 2,
-        "#ff007f", 20, 7
+        "#ff007f", 18, 6
       );
-      FX.spawnText(
-        s.food.x * this.gridSize,
-        s.food.y * this.gridSize,
-        s.combo > 1 ? `+${earned} (${s.combo}x)` : `+${earned}`,
-        "#00f2fe"
-      );
+      FX.spawnText(s.food.x * this.gridSize, s.food.y * this.gridSize, "+10", "#00f2fe");
 
       if (s.score > s.highScore) {
         s.highScore = s.score;
@@ -97,10 +85,21 @@ const SnakeGame = {
     }
   },
 
-  triggerGameOver() {
+  triggerBulletTime() {
+    const s = this.state;
+    if (s.isStarted && !s.isGameOver && !s.bulletTimeActive && s.bulletTimeCooldown <= 0) {
+      s.bulletTimeActive = true;
+      s.bulletTimeLeft = 2.5;
+      s.bulletTimeCooldown = 6.0;
+      AudioEngine.play('slowmo');
+      FX.triggerShake(6, 6);
+    }
+  },
+
+  gameOver() {
     this.state.isGameOver = true;
     AudioEngine.play('hit');
-    FX.triggerShake(16, 12);
+    FX.triggerShake(18, 12);
   },
 
   onKeyDown(e) {
@@ -110,6 +109,7 @@ const SnakeGame = {
       else if (s.isGameOver) this.init();
       return;
     }
+    if (e.code === "KeyB") this.triggerBulletTime();
     if (e.code === "ArrowUp" && s.dy === 0) { s.nextDx = 0; s.nextDy = -1; s.isStarted = true; }
     if (e.code === "ArrowDown" && s.dy === 0) { s.nextDx = 0; s.nextDy = 1; s.isStarted = true; }
     if (e.code === "ArrowLeft" && s.dx === 0) { s.nextDx = -1; s.nextDy = 0; s.isStarted = true; }
@@ -119,16 +119,15 @@ const SnakeGame = {
   onPointerDown(x, y) {
     if (!this.state.isStarted) this.state.isStarted = true;
     else if (this.state.isGameOver) this.init();
+    else this.triggerBulletTime();
   },
 
   render(ctx) {
     const s = this.state;
-    ctx.fillStyle = "#040711";
+    ctx.fillStyle = s.bulletTimeActive ? "#020713" : "#04060d";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Garis Grid Sci-Fi Neon
-    ctx.strokeStyle = "rgba(0, 242, 254, 0.04)";
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(0, 242, 254, 0.05)";
     for (let x = 0; x < canvas.width; x += this.gridSize) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
     }
@@ -136,70 +135,82 @@ const SnakeGame = {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
     }
 
-    // Render Food Orb
-    const foodX = s.food.x * this.gridSize + this.gridSize / 2;
-    const foodY = s.food.y * this.gridSize + this.gridSize / 2;
+    // Food Orb
+    const fx = s.food.x * this.gridSize + this.gridSize / 2;
+    const fy = s.food.y * this.gridSize + this.gridSize / 2;
     ctx.save();
-    ctx.shadowBlur = 25;
+    ctx.shadowBlur = 20;
     ctx.shadowColor = "#ff007f";
     ctx.fillStyle = "#ff007f";
     ctx.beginPath();
-    ctx.arc(foodX, foodY, this.gridSize / 2.6, 0, Math.PI * 2);
+    ctx.arc(fx, fy, this.gridSize / 2.6, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
-    // Render Ular dengan Gradient Kepala & Ekor
+    // Snake Body
     for (let i = 0; i < s.snake.length; i++) {
-      const part = s.snake[i];
+      const p = s.snake[i];
       ctx.save();
       if (i === 0) {
-        ctx.shadowBlur = 20;
-        ctx.shadowColor = "#00f2fe";
-        ctx.fillStyle = "#00f2fe";
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = s.bulletTimeActive ? "#ffeb3b" : "#00f2fe";
+        ctx.fillStyle = s.bulletTimeActive ? "#ffeb3b" : "#00f2fe";
       } else {
         ctx.fillStyle = "#0072ff";
       }
-      ctx.fillRect(part.x * this.gridSize + 2, part.y * this.gridSize + 2, this.gridSize - 4, this.gridSize - 4);
+      ctx.fillRect(p.x * this.gridSize + 2, p.y * this.gridSize + 2, this.gridSize - 4, this.gridSize - 4);
       ctx.restore();
     }
 
-    // Skor & Combo Bar
+    // UI
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 38px sans-serif";
+    ctx.font = "bold 40px 'Orbitron', monospace";
     ctx.fillText("Skor: " + s.score, 35, 65);
 
     ctx.fillStyle = "#ffc107";
-    ctx.font = "bold 24px sans-serif";
-    ctx.fillText("Rekor: " + s.highScore, 35, 105);
+    ctx.font = "bold 22px 'Rajdhani', sans-serif";
+    ctx.fillText("Rekor: " + s.highScore, 35, 100);
 
-    if (s.combo > 1) {
-      ctx.fillStyle = "#00f2fe";
-      ctx.font = "bold 22px sans-serif";
-      ctx.fillText(`⚡ COMBO ${s.combo}x (${s.comboTimer.toFixed(1)}s)`, 35, 145);
+    if (s.bulletTimeActive) {
+      ctx.fillStyle = "#ffeb3b";
+      ctx.fillText(`⌛ SLOW-MO: ${s.bulletTimeLeft.toFixed(1)}s`, 35, 135);
+    } else if (s.bulletTimeCooldown > 0) {
+      ctx.fillStyle = "#798da3";
+      ctx.fillText(`Slow-Mo Cooldown: ${Math.ceil(s.bulletTimeCooldown)}s`, 35, 135);
+    } else {
+      ctx.fillStyle = "#00e676";
+      ctx.fillText("⚡ Slow-Mo READY (B)", 35, 135);
     }
 
     if (!s.isStarted) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#00f2fe";
-      ctx.font = "bold 50px sans-serif";
-      ctx.fillText("CYBER SNAKE", 185, 480);
+      ctx.font = "bold 48px 'Orbitron', monospace";
+      ctx.fillText("CYBER SNAKE", 160, 480);
       ctx.fillStyle = "#ffffff";
-      ctx.font = "26px sans-serif";
+      ctx.font = "24px 'Rajdhani', sans-serif";
       ctx.fillText("Tekan SPASI / Ketuk Layar", 200, 540);
     } else if (s.isGameOver) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#ff1744";
-      ctx.font = "bold 58px sans-serif";
-      ctx.fillText("GAME OVER", 185, 480);
+      ctx.font = "bold 56px 'Orbitron', monospace";
+      ctx.fillText("GAME OVER", 175, 480);
       ctx.fillStyle = "#ffffff";
-      ctx.font = "28px sans-serif";
+      ctx.font = "28px 'Rajdhani', sans-serif";
       ctx.fillText("Skor Akhir: " + s.score, 260, 540);
       ctx.fillStyle = "#ffeb3b";
-      ctx.font = "24px sans-serif";
-      ctx.fillText("Tekan SPASI / Ketuk untuk restart", 175, 600);
+      ctx.fillText("Tekan SPASI untuk Restart", 210, 600);
     }
+  },
+
+  renderDebug(ctx) {
+    const s = this.state;
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 255, 0, 0.4)";
+    ctx.strokeRect(s.food.x * this.gridSize, s.food.y * this.gridSize, this.gridSize, this.gridSize);
+    ctx.restore();
   }
 };
 
