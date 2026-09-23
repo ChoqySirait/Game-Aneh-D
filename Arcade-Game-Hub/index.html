@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>NeonPulse Arcade | Ultra Responsive Web Canvas</title>
   
-  <!-- Font Google: Orbitron untuk header arcade & Rajdhani untuk teks UI yang tajam -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
@@ -14,12 +13,10 @@
 </head>
 <body>
 
-  <!-- Ambient Animated Cyber Glow -->
   <div class="ambient-glow bg-cyan"></div>
   <div class="ambient-glow bg-magenta"></div>
 
   <main class="arcade-cabinet">
-    <!-- Header Arcade dengan Animasi Glitch Glow -->
     <header class="arcade-header">
       <div class="badge-status">
         <span class="live-dot"></span> SYSTEM READY (60 FPS)
@@ -28,35 +25,37 @@
       <p class="subtitle">MICRO-ARCADE ENGINE // VANILLA JS</p>
     </header>
 
-    <!-- Menu Pemilihan Game Bergaya Tab Konsol -->
+    <!-- Menu Pemilihan 4 Game -->
     <nav class="game-nav" aria-label="Game Selection">
       <button class="game-tab active" onclick="switchGame('flappy', event)">
         <span class="icon">🦅</span>
-        <span class="tab-label">FLAPPY EAGLE</span>
+        <span class="tab-label">FLAPPY</span>
         <span class="glow-indicator"></span>
       </button>
       <button class="game-tab" onclick="switchGame('snake', event)">
         <span class="icon">🐍</span>
-        <span class="tab-label">CYBER SNAKE</span>
+        <span class="tab-label">SNAKE</span>
         <span class="glow-indicator"></span>
       </button>
       <button class="game-tab" onclick="switchGame('memory', event)">
         <span class="icon">🧠</span>
-        <span class="tab-label">MEMORY MATRIX</span>
+        <span class="tab-label">MEMORY</span>
+        <span class="glow-indicator"></span>
+      </button>
+      <button class="game-tab" onclick="switchGame('breaker', event)">
+        <span class="icon">🧱</span>
+        <span class="tab-label">BREAKER</span>
         <span class="glow-indicator"></span>
       </button>
     </nav>
 
-    <!-- Canvas Frame Unit dengan Screen Effect (CRT Scanlines & Glass Glare) -->
     <div class="viewport-frame">
       <div class="crt-scanline"></div>
       <div class="crt-vignette"></div>
       <div class="crt-glare"></div>
-      
       <canvas id="gameCanvas" width="720" height="1080"></canvas>
     </div>
 
-    <!-- HUD Dynamic Instruction Box -->
     <footer class="hud-panel">
       <div class="hud-terminal-header">
         <span class="terminal-dot"></span>
@@ -70,11 +69,11 @@
     </footer>
   </main>
 
-  <!-- Script Modules -->
-<!-- PASTIKAN main.js ADA DI PALING ATAS -->
+  <!-- Pemuatan Modul (Engine Core Harus Pertama) -->
   <script src="js/main.js"></script>
   <script src="js/flappy.js"></script>
   <script src="js/snake.js"></script>
   <script src="js/memory.js"></script>
+  <script src="js/breaker.js"></script>
 </body>
 </html>
