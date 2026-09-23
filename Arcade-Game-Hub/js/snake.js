@@ -1,23 +1,32 @@
 const SnakeGame = {
-  instruction: "Kendali: <b>Panah</b> | Slow-Motion: <b>B / Tap 2x</b> | Evolusi Naga: <b>100 Skor</b>",
+  instruction: "Kendali: <b>WASD / IJKL / Panah</b> | Slow-Motion: <b>B / Tap 2x</b>",
   gridSize: 40,
   state: {},
+
+  dragonTiers: [
+    { scoreReq: 0, name: "CYBER SNAKE", head: "#00f2fe", body1: "#0072ff", body2: "#0051b3", horn: null },
+    { scoreReq: 200, name: "BRONZE WYRM (TIER 1)", head: "#ff7700", body1: "#cc5500", body2: "#993d00", horn: "#ffaa00" },
+    { scoreReq: 500, name: "CRIMSON DRAKE (TIER 2)", head: "#ff1744", body1: "#d50000", body2: "#9b0000", horn: "#ffeb3b" },
+    { scoreReq: 1000, name: "JADE SERPENT (TIER 3)", head: "#00e676", body1: "#00b248", body2: "#007e33", horn: "#69f0ae" },
+    { scoreReq: 1800, name: "GOLDEN IMPERIAL (TIER 4)", head: "#ffd700", body1: "#ffaa00", body2: "#cc8800", horn: "#ffffff" },
+    { scoreReq: 2600, name: "AMETHYST WYVERN (TIER 5)", head: "#d500f9", body1: "#aa00ff", body2: "#7200ca", horn: "#00f2fe" },
+    { scoreReq: 3400, name: "SOLAR FLARE (TIER 6)", head: "#ffea00", body1: "#ff9100", body2: "#ff3d00", horn: "#ffffff" },
+    { scoreReq: 4200, name: "VOID LEVIATHAN (TIER 7)", head: "#ff007f", body1: "#240046", body2: "#10002b", horn: "#ff0055" },
+    { scoreReq: 5000, name: "OUROBOROS GOD (TIER 8)", head: "#ffffff", body1: "#00f2fe", body2: "#ff007f", horn: "#ffeb3b" }
+  ],
 
   init() {
     const savedHighScore = localStorage.getItem("snake_high_score") || 0;
     this.state = {
       snake: [{ x: 8, y: 12 }, { x: 7, y: 12 }, { x: 6, y: 12 }],
-      dx: 1, dy: 0, nextDx: 1, nextDy: 0,
+      dx: 1, dy: 0,
+      inputQueue: [], // BUFFER INPUT ANTI-LAG
       food: { x: 12, y: 12 },
       score: 0, highScore: parseInt(savedHighScore),
       isGameOver: false, isStarted: false,
-      stepTimer: 0, baseSpeed: 0.12,
+      stepTimer: 0, baseSpeed: 0.11,
       bulletTimeActive: false, bulletTimeLeft: 0, bulletTimeCooldown: 0,
-      
-      // SISTEM SKOR AGRESIF
-      comboStreak: 1,
-      comboTimer: 0,
-      hasEvolved: false
+      currentTier: 0
     };
     this.spawnFood();
   },
@@ -39,19 +48,17 @@ const SnakeGame = {
     const s = this.state;
     if (!s.isStarted || s.isGameOver) return;
 
-    // Timer Penurunan Combo
-    if (s.comboTimer > 0) {
-      s.comboTimer -= dt;
-      if (s.comboTimer <= 0) s.comboStreak = 1;
-    }
-
-    // Pemicu Naga Merah
-    if (s.score >= 100 && !s.hasEvolved) {
-      s.hasEvolved = true;
-      AudioEngine.playTone(180, 'sawtooth', 0.8, 0.3);
-      FX.triggerShake(20, 15);
-      FX.spawnText(canvas.width / 2 - 140, canvas.height / 2, "DRAGON AWAKENED!", "#ff1744");
-      FX.spawnParticles(canvas.width / 2, canvas.height / 2, "#ff1744", 40, 10);
+    // Evaluasi Tier Naga
+    for (let i = this.dragonTiers.length - 1; i >= 0; i--) {
+      if (s.score >= this.dragonTiers[i].scoreReq) {
+        if (s.currentTier !== i) {
+          s.currentTier = i;
+          AudioEngine.playTone(200 + i * 50, 'sawtooth', 0.5, 0.25);
+          FX.triggerShake(16, 12);
+          FX.spawnText(canvas.width / 2 - 130, canvas.height / 2, `EVOLVED: ${this.dragonTiers[i].name}!`, this.dragonTiers[i].head);
+        }
+        break;
+      }
     }
 
     if (s.bulletTimeActive) {
@@ -61,19 +68,28 @@ const SnakeGame = {
       s.bulletTimeCooldown -= dt;
     }
 
-    let interval = Math.max(0.06, s.baseSpeed - Math.floor(s.score / 200) * 0.01);
-    if (s.bulletTimeActive) interval *= 2.5;
+    let interval = Math.max(0.06, s.baseSpeed - Math.floor(s.score / 200) * 0.005);
+    if (s.bulletTimeActive) interval *= 2.4;
 
     s.stepTimer += dt;
     if (s.stepTimer < interval) return;
     s.stepTimer = 0;
 
-    s.dx = s.nextDx;
-    s.dy = s.nextDy;
+    // AMBIL INPUT DARI QUEUE BUFFER (Solusi anti-lag double turn)
+    if (s.inputQueue.length > 0) {
+      const nextDir = s.inputQueue.shift();
+      // Cegah putar balik 180 derajat langsung
+      if (!(nextDir.x === -s.dx && nextDir.y === 0) && !(nextDir.y === -s.dy && nextDir.x === 0)) {
+        s.dx = nextDir.x;
+        s.dy = nextDir.y;
+      }
+    }
+
     const head = { x: s.snake[0].x + s.dx, y: s.snake[0].y + s.dy };
     const cols = Math.floor(canvas.width / this.gridSize);
     const rows = Math.floor(canvas.height / this.gridSize);
 
+    // Tabrak Tembok / Badan
     if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows ||
         s.snake.some(p => p.x === head.x && p.y === head.y)) {
       this.gameOver();
@@ -82,25 +98,23 @@ const SnakeGame = {
 
     s.snake.unshift(head);
 
-    if (s.hasEvolved) {
-      FX.spawnParticles(head.x * this.gridSize + 20, head.y * this.gridSize + 20, "#ff1744", 2, 2);
+    // Partikel Aura Sisik Naga
+    if (s.currentTier > 0) {
+      FX.spawnParticles(head.x * this.gridSize + 20, head.y * this.gridSize + 20, this.dragonTiers[s.currentTier].head, 1, 1.5);
     }
 
-    // MAKAN MAKANAN DENGAN MULTIPLIER BESAR
     if (head.x === s.food.x && head.y === s.food.y) {
-      const earned = (s.hasEvolved ? 25 : 10) * s.comboStreak;
-      s.score += earned;
-      s.comboStreak = Math.min(8, s.comboStreak + 1);
-      s.comboTimer = 4.0; // Reset waktu combo 4 detik
+      const pointEarned = 10 + s.currentTier * 5;
+      s.score += pointEarned;
 
-      AudioEngine.playArpeggio(s.comboStreak);
+      AudioEngine.playArpeggio(s.currentTier + 1);
       FX.triggerShake(4, 4);
       FX.spawnParticles(
         s.food.x * this.gridSize + this.gridSize / 2,
         s.food.y * this.gridSize + this.gridSize / 2,
-        s.hasEvolved ? "#ff1744" : "#ff007f", 20, 7
+        this.dragonTiers[s.currentTier].head, 16, 6
       );
-      FX.spawnText(s.food.x * this.gridSize, s.food.y * this.gridSize, `+${earned}`, s.hasEvolved ? "#ff1744" : "#00f2fe");
+      FX.spawnText(s.food.x * this.gridSize, s.food.y * this.gridSize, `+${pointEarned}`, this.dragonTiers[s.currentTier].head);
 
       if (s.score > s.highScore) {
         s.highScore = s.score;
@@ -109,6 +123,14 @@ const SnakeGame = {
       this.spawnFood();
     } else {
       s.snake.pop();
+    }
+  },
+
+  queueMove(x, y) {
+    if (!this.state.isStarted) this.state.isStarted = true;
+    // Simpan maksimal 2 antrean input gerakan berikutnya
+    if (this.state.inputQueue.length < 2) {
+      this.state.inputQueue.push({ x, y });
     }
   },
 
@@ -125,23 +147,30 @@ const SnakeGame = {
 
   gameOver() {
     this.state.isGameOver = true;
-    this.state.comboStreak = 1;
     AudioEngine.play('hit');
     FX.triggerShake(18, 12);
   },
 
   onKeyDown(e) {
     const s = this.state;
+    // CEGAH LAYAR SCROLL SAAT MENEKAN TOMBOL ARAH
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) {
+      e.preventDefault();
+    }
+
     if (e.code === "Space") {
       if (!s.isStarted) s.isStarted = true;
       else if (s.isGameOver) this.init();
       return;
     }
+
     if (e.code === "KeyB") this.triggerBulletTime();
-    if (e.code === "ArrowUp" && s.dy === 0) { s.nextDx = 0; s.nextDy = -1; s.isStarted = true; }
-    if (e.code === "ArrowDown" && s.dy === 0) { s.nextDx = 0; s.nextDy = 1; s.isStarted = true; }
-    if (e.code === "ArrowLeft" && s.dx === 0) { s.nextDx = -1; s.nextDy = 0; s.isStarted = true; }
-    if (e.code === "ArrowRight" && s.dx === 0) { s.nextDx = 1; s.nextDy = 0; s.isStarted = true; }
+
+    // DUKUNGAN UNIVERSAL: PANAH / WASD / IJKL
+    if (e.code === "ArrowUp" || e.code === "KeyW" || e.code === "KeyI") this.queueMove(0, -1);
+    if (e.code === "ArrowDown" || e.code === "KeyS" || e.code === "KeyK") this.queueMove(0, 1);
+    if (e.code === "ArrowLeft" || e.code === "KeyA" || e.code === "KeyJ") this.queueMove(-1, 0);
+    if (e.code === "ArrowRight" || e.code === "KeyD" || e.code === "KeyL") this.queueMove(1, 0);
   },
 
   onPointerDown(x, y) {
@@ -152,10 +181,13 @@ const SnakeGame = {
 
   render(ctx) {
     const s = this.state;
-    ctx.fillStyle = s.hasEvolved ? "#140205" : (s.bulletTimeActive ? "#020713" : "#04060d");
+    const tier = this.dragonTiers[s.currentTier];
+
+    ctx.fillStyle = s.bulletTimeActive ? "#020713" : "#04060d";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.strokeStyle = s.hasEvolved ? "rgba(255, 23, 68, 0.08)" : "rgba(0, 242, 254, 0.05)";
+    // Grid Cyber
+    ctx.strokeStyle = "rgba(0, 242, 254, 0.04)";
     for (let x = 0; x < canvas.width; x += this.gridSize) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
     }
@@ -163,17 +195,19 @@ const SnakeGame = {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
     }
 
+    // Food (Dragon Pearl)
     const fx = s.food.x * this.gridSize + this.gridSize / 2;
     const fy = s.food.y * this.gridSize + this.gridSize / 2;
     ctx.save();
     ctx.shadowBlur = 25;
-    ctx.shadowColor = s.hasEvolved ? "#ffeb3b" : "#ff007f";
-    ctx.fillStyle = s.hasEvolved ? "#ffeb3b" : "#ff007f";
+    ctx.shadowColor = tier.head;
+    ctx.fillStyle = tier.head;
     ctx.beginPath();
-    ctx.arc(fx, fy, this.gridSize / 2.6, 0, Math.PI * 2);
+    ctx.arc(fx, fy, this.gridSize / 2.5, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
 
+    // RENDER NAGA & SISIK
     for (let i = 0; i < s.snake.length; i++) {
       const p = s.snake[i];
       const px = p.x * this.gridSize;
@@ -181,51 +215,47 @@ const SnakeGame = {
 
       ctx.save();
       if (i === 0) {
-        if (s.hasEvolved) {
-          ctx.shadowBlur = 30;
-          ctx.shadowColor = "#ff1744";
-          ctx.fillStyle = "#ff1744";
-          ctx.fillRect(px + 2, py + 2, this.gridSize - 4, this.gridSize - 4);
+        // Kepala Naga
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = tier.head;
+        ctx.fillStyle = tier.head;
+        ctx.fillRect(px + 2, py + 2, this.gridSize - 4, this.gridSize - 4);
 
-          ctx.fillStyle = "#ffc107";
+        // Tanduk Naga Berkembang Sesuai Tier
+        if (tier.horn) {
+          ctx.fillStyle = tier.horn;
           ctx.beginPath();
-          ctx.moveTo(px + 8, py + 4);
-          ctx.lineTo(px - 4, py - 8);
+          ctx.moveTo(px + 6, py + 4);
+          ctx.lineTo(px - 6, py - 10);
           ctx.lineTo(px + 14, py + 2);
-          ctx.moveTo(px + this.gridSize - 8, py + 4);
-          ctx.lineTo(px + this.gridSize + 4, py - 8);
+          ctx.moveTo(px + this.gridSize - 6, py + 4);
+          ctx.lineTo(px + this.gridSize + 6, py - 10);
           ctx.lineTo(px + this.gridSize - 14, py + 2);
           ctx.fill();
+        }
 
-          ctx.fillStyle = "#ffff00";
-          ctx.fillRect(px + 8, py + 12, 6, 6);
-          ctx.fillRect(px + this.gridSize - 14, py + 12, 6, 6);
-        } else {
-          ctx.shadowBlur = 15;
-          ctx.shadowColor = "#00f2fe";
-          ctx.fillStyle = "#00f2fe";
-          ctx.fillRect(px + 2, py + 2, this.gridSize - 4, this.gridSize - 4);
-        }
+        // Mata Naga Menyala
+        ctx.fillStyle = s.currentTier >= 7 ? "#ffffff" : "#ffff00";
+        ctx.fillRect(px + 8, py + 12, 6, 6);
+        ctx.fillRect(px + this.gridSize - 14, py + 12, 6, 6);
       } else {
-        if (s.hasEvolved) {
-          ctx.shadowBlur = 10;
-          ctx.shadowColor = "#ff1744";
-          ctx.fillStyle = (i % 2 === 0) ? "#b71c1c" : "#d50000";
-        } else {
-          ctx.fillStyle = "#0072ff";
-        }
+        // Badan Sisik Belang
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = tier.body1;
+        ctx.fillStyle = (i % 2 === 0) ? tier.body1 : tier.body2;
         ctx.fillRect(px + 3, py + 3, this.gridSize - 6, this.gridSize - 6);
       }
       ctx.restore();
     }
 
+    // UI Panel
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 40px 'Orbitron', monospace";
     ctx.fillText("Skor: " + s.score, 35, 65);
 
-    ctx.fillStyle = s.hasEvolved ? "#ff1744" : "#ffc107";
+    ctx.fillStyle = tier.head;
     ctx.font = "bold 20px 'Rajdhani', sans-serif";
-    ctx.fillText(s.hasEvolved ? `🔥 NAGA MERAH | COMBO: ${s.comboStreak}x` : `CYBER SNAKE | COMBO: ${s.comboStreak}x`, 35, 100);
+    ctx.fillText(tier.name, 35, 100);
 
     if (s.bulletTimeActive) {
       ctx.fillStyle = "#ffeb3b";
@@ -246,7 +276,7 @@ const SnakeGame = {
       ctx.fillText("CYBER SNAKE", 160, 480);
       ctx.fillStyle = "#ffffff";
       ctx.font = "24px 'Rajdhani', sans-serif";
-      ctx.fillText("Tekan SPASI / Ketuk Layar", 200, 540);
+      ctx.fillText("Tekan WASD / Panah / Spasi", 185, 540);
     } else if (s.isGameOver) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -259,14 +289,6 @@ const SnakeGame = {
       ctx.fillStyle = "#ffeb3b";
       ctx.fillText("Tekan SPASI untuk Restart", 210, 600);
     }
-  },
-
-  renderDebug(ctx) {
-    const s = this.state;
-    ctx.save();
-    ctx.strokeStyle = "rgba(255, 255, 0, 0.4)";
-    ctx.strokeRect(s.food.x * this.gridSize, s.food.y * this.gridSize, this.gridSize, this.gridSize);
-    ctx.restore();
   }
 };
 
