@@ -1,5 +1,5 @@
 const SnakeGame = {
-  instruction: "Kendali: <b>Panah</b> | Slow-Motion: <b>B / Klik 2x</b> | Evolusi Naga: <b>100 Skor</b>",
+  instruction: "Kendali: <b>Panah</b> | Slow-Motion: <b>B / Tap 2x</b> | Evolusi Naga: <b>100 Skor</b>",
   gridSize: 40,
   state: {},
 
@@ -13,7 +13,10 @@ const SnakeGame = {
       isGameOver: false, isStarted: false,
       stepTimer: 0, baseSpeed: 0.12,
       bulletTimeActive: false, bulletTimeLeft: 0, bulletTimeCooldown: 0,
-      combo: 0,
+      
+      // SISTEM SKOR AGRESIF
+      comboStreak: 1,
+      comboTimer: 0,
       hasEvolved: false
     };
     this.spawnFood();
@@ -36,7 +39,13 @@ const SnakeGame = {
     const s = this.state;
     if (!s.isStarted || s.isGameOver) return;
 
-    // Cek Transformasi Naga
+    // Timer Penurunan Combo
+    if (s.comboTimer > 0) {
+      s.comboTimer -= dt;
+      if (s.comboTimer <= 0) s.comboStreak = 1;
+    }
+
+    // Pemicu Naga Merah
     if (s.score >= 100 && !s.hasEvolved) {
       s.hasEvolved = true;
       AudioEngine.playTone(180, 'sawtooth', 0.8, 0.3);
@@ -52,7 +61,7 @@ const SnakeGame = {
       s.bulletTimeCooldown -= dt;
     }
 
-    let interval = Math.max(0.06, s.baseSpeed - Math.floor(s.score / 50) * 0.01);
+    let interval = Math.max(0.06, s.baseSpeed - Math.floor(s.score / 200) * 0.01);
     if (s.bulletTimeActive) interval *= 2.5;
 
     s.stepTimer += dt;
@@ -73,22 +82,25 @@ const SnakeGame = {
 
     s.snake.unshift(head);
 
-    // Efek Jejak Naga
     if (s.hasEvolved) {
       FX.spawnParticles(head.x * this.gridSize + 20, head.y * this.gridSize + 20, "#ff1744", 2, 2);
     }
 
+    // MAKAN MAKANAN DENGAN MULTIPLIER BESAR
     if (head.x === s.food.x && head.y === s.food.y) {
-      s.score += 10;
-      s.combo++;
-      AudioEngine.playArpeggio(s.combo);
+      const earned = (s.hasEvolved ? 25 : 10) * s.comboStreak;
+      s.score += earned;
+      s.comboStreak = Math.min(8, s.comboStreak + 1);
+      s.comboTimer = 4.0; // Reset waktu combo 4 detik
+
+      AudioEngine.playArpeggio(s.comboStreak);
       FX.triggerShake(4, 4);
       FX.spawnParticles(
         s.food.x * this.gridSize + this.gridSize / 2,
         s.food.y * this.gridSize + this.gridSize / 2,
-        s.hasEvolved ? "#ff1744" : "#ff007f", 18, 6
+        s.hasEvolved ? "#ff1744" : "#ff007f", 20, 7
       );
-      FX.spawnText(s.food.x * this.gridSize, s.food.y * this.gridSize, "+10", s.hasEvolved ? "#ff1744" : "#00f2fe");
+      FX.spawnText(s.food.x * this.gridSize, s.food.y * this.gridSize, `+${earned}`, s.hasEvolved ? "#ff1744" : "#00f2fe");
 
       if (s.score > s.highScore) {
         s.highScore = s.score;
@@ -113,6 +125,7 @@ const SnakeGame = {
 
   gameOver() {
     this.state.isGameOver = true;
+    this.state.comboStreak = 1;
     AudioEngine.play('hit');
     FX.triggerShake(18, 12);
   },
@@ -142,7 +155,6 @@ const SnakeGame = {
     ctx.fillStyle = s.hasEvolved ? "#140205" : (s.bulletTimeActive ? "#020713" : "#04060d");
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Grid Cyber
     ctx.strokeStyle = s.hasEvolved ? "rgba(255, 23, 68, 0.08)" : "rgba(0, 242, 254, 0.05)";
     for (let x = 0; x < canvas.width; x += this.gridSize) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
@@ -151,7 +163,6 @@ const SnakeGame = {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
     }
 
-    // Makanan / Dragon Pearl
     const fx = s.food.x * this.gridSize + this.gridSize / 2;
     const fy = s.food.y * this.gridSize + this.gridSize / 2;
     ctx.save();
@@ -163,7 +174,6 @@ const SnakeGame = {
     ctx.fill();
     ctx.restore();
 
-    // RENDER BADAN & KEPALA NAGA
     for (let i = 0; i < s.snake.length; i++) {
       const p = s.snake[i];
       const px = p.x * this.gridSize;
@@ -172,13 +182,11 @@ const SnakeGame = {
       ctx.save();
       if (i === 0) {
         if (s.hasEvolved) {
-          // --- KEPALA NAGA BERTANDUK EMAS ---
           ctx.shadowBlur = 30;
           ctx.shadowColor = "#ff1744";
           ctx.fillStyle = "#ff1744";
           ctx.fillRect(px + 2, py + 2, this.gridSize - 4, this.gridSize - 4);
 
-          // Tanduk Naga Emas
           ctx.fillStyle = "#ffc107";
           ctx.beginPath();
           ctx.moveTo(px + 8, py + 4);
@@ -189,23 +197,20 @@ const SnakeGame = {
           ctx.lineTo(px + this.gridSize - 14, py + 2);
           ctx.fill();
 
-          // Mata Naga Menyala
           ctx.fillStyle = "#ffff00";
           ctx.fillRect(px + 8, py + 12, 6, 6);
           ctx.fillRect(px + this.gridSize - 14, py + 12, 6, 6);
         } else {
-          // Ular Biasa Cyan
           ctx.shadowBlur = 15;
           ctx.shadowColor = "#00f2fe";
           ctx.fillStyle = "#00f2fe";
           ctx.fillRect(px + 2, py + 2, this.gridSize - 4, this.gridSize - 4);
         }
       } else {
-        // Badan Ular / Sisik Naga
         if (s.hasEvolved) {
           ctx.shadowBlur = 10;
           ctx.shadowColor = "#ff1744";
-          ctx.fillStyle = (i % 2 === 0) ? "#b71c1c" : "#d50000"; // Sisik api belang
+          ctx.fillStyle = (i % 2 === 0) ? "#b71c1c" : "#d50000";
         } else {
           ctx.fillStyle = "#0072ff";
         }
@@ -214,14 +219,13 @@ const SnakeGame = {
       ctx.restore();
     }
 
-    // HUD Text
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 40px 'Orbitron', monospace";
     ctx.fillText("Skor: " + s.score, 35, 65);
 
     ctx.fillStyle = s.hasEvolved ? "#ff1744" : "#ffc107";
     ctx.font = "bold 20px 'Rajdhani', sans-serif";
-    ctx.fillText(s.hasEvolved ? "🔥 WUJUD: NAGA CRIMSON" : "BENTUK: CYBER SNAKE", 35, 100);
+    ctx.fillText(s.hasEvolved ? `🔥 NAGA MERAH | COMBO: ${s.comboStreak}x` : `CYBER SNAKE | COMBO: ${s.comboStreak}x`, 35, 100);
 
     if (s.bulletTimeActive) {
       ctx.fillStyle = "#ffeb3b";
@@ -255,6 +259,14 @@ const SnakeGame = {
       ctx.fillStyle = "#ffeb3b";
       ctx.fillText("Tekan SPASI untuk Restart", 210, 600);
     }
+  },
+
+  renderDebug(ctx) {
+    const s = this.state;
+    ctx.save();
+    ctx.strokeStyle = "rgba(255, 255, 0, 0.4)";
+    ctx.strokeRect(s.food.x * this.gridSize, s.food.y * this.gridSize, this.gridSize, this.gridSize);
+    ctx.restore();
   }
 };
 
