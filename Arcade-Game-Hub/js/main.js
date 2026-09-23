@@ -1,5 +1,6 @@
 // =================================================================
-// 🚀 NEON PULSE ENGINE (Delta Time, Audio Synth, FX, & Scene State)
+// 🚀 NEON PULSE ADVANCED ENGINE
+// Features: Delta-Time, Fixed Physics, Procedural Chords, Debug HUD
 // =================================================================
 
 const canvas = document.getElementById("gameCanvas");
@@ -9,86 +10,78 @@ const gameInfo = document.getElementById("gameInfo");
 ctx.imageSmoothingEnabled = true;
 ctx.imageSmoothingQuality = "high";
 
-// --- AUDIO SYNTHESIZER ---
+// --- PENTATONIC AUDIO SYNTHESIZER ---
 const AudioEngine = {
   ctx: null,
+  pentatonicScale: [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33], // C4, D4, E4, G4, A4, C5, D5
+
   init() {
     if (!this.ctx) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      this.ctx = new AudioContext();
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      this.ctx = new AudioCtx();
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
   },
-  play(type) {
+
+  playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.15) {
     if (!this.ctx) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
+
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, now);
+    gain.gain.setValueAtTime(gainVal, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
     osc.connect(gain);
     gain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + duration);
+  },
 
-    switch (type) {
-      case 'jump':
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(320, now);
-        osc.frequency.exponentialRampToValueAtTime(700, now + 0.12);
-        gain.gain.setValueAtTime(0.2, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.12);
-        osc.start(now);
-        osc.stop(now + 0.12);
-        break;
-      case 'score':
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(523.25, now); // C5
-        osc.frequency.setValueAtTime(659.25, now + 0.08); // E5
-        gain.gain.setValueAtTime(0.15, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.18);
-        osc.start(now);
-        osc.stop(now + 0.18);
-        break;
-      case 'hit':
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(140, now);
-        osc.frequency.exponentialRampToValueAtTime(25, now + 0.25);
-        gain.gain.setValueAtTime(0.3, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.25);
-        osc.start(now);
-        osc.stop(now + 0.25);
-        break;
-      case 'shield':
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(200, now);
-        osc.frequency.linearRampToValueAtTime(600, now + 0.2);
-        gain.gain.setValueAtTime(0.25, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
-        osc.start(now);
-        osc.stop(now + 0.2);
-        break;
-      case 'tile':
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(440, now);
-        gain.gain.setValueAtTime(0.15, now);
-        gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
-        osc.start(now);
-        osc.stop(now + 0.08);
-        break;
+  playArpeggio(step = 0) {
+    const note = this.pentatonicScale[step % this.pentatonicScale.length];
+    this.playTone(note, 'triangle', 0.15, 0.18);
+  },
+
+  play(type) {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    if (type === 'hit') {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(120, now);
+      osc.frequency.exponentialRampToValueAtTime(20, now + 0.3);
+      gain.gain.setValueAtTime(0.3, now);
+      gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } else if (type === 'graze') {
+      this.playTone(880, 'sine', 0.06, 0.08); // Tingging mendesing tajam
+    } else if (type === 'slowmo') {
+      this.playTone(150, 'sawtooth', 0.4, 0.2);
     }
   }
 };
 
-// --- FX SYSTEM: SHAKE, PARTICLES & FLOATING TEXTS ---
+// --- FX & PARTICLES SYSTEM ---
 const FX = {
   shakeTimer: 0,
   shakeIntensity: 0,
   particles: [],
   floatTexts: [],
 
-  triggerShake(intensity = 15, duration = 12) {
+  triggerShake(intensity = 12, duration = 10) {
     this.shakeIntensity = intensity;
     this.shakeTimer = duration;
   },
 
-  spawnParticles(x, y, color, count = 15, speed = 6) {
+  spawnParticles(x, y, color, count = 15, speed = 5) {
     for (let i = 0; i < count; i++) {
       const angle = Math.random() * Math.PI * 2;
       const vel = Math.random() * speed;
@@ -96,7 +89,7 @@ const FX = {
         x, y,
         vx: Math.cos(angle) * vel,
         vy: Math.sin(angle) * vel,
-        size: Math.random() * 5 + 2,
+        size: Math.random() * 4 + 2,
         color,
         life: 1.0,
         decay: Math.random() * 0.03 + 0.02
@@ -105,13 +98,12 @@ const FX = {
   },
 
   spawnText(x, y, text, color = "#00f2fe") {
-    this.floatTexts.push({ x, y, text, color, alpha: 1.0, vy: -1.5 });
+    this.floatTexts.push({ x, y, text, color, alpha: 1.0, vy: -1.2 });
   },
 
-  update() {
+  update(dt) {
     if (this.shakeTimer > 0) this.shakeTimer--;
 
-    // Update Partikel
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.x += p.vx;
@@ -120,21 +112,19 @@ const FX = {
       if (p.life <= 0) this.particles.splice(i, 1);
     }
 
-    // Update Floating Text
     for (let i = this.floatTexts.length - 1; i >= 0; i--) {
       const ft = this.floatTexts[i];
       ft.y += ft.vy;
-      ft.alpha -= 0.025;
+      ft.alpha -= 0.02;
       if (ft.alpha <= 0) this.floatTexts.splice(i, 1);
     }
   },
 
   render(ctx) {
-    // Render partikel
     this.particles.forEach(p => {
       ctx.save();
       ctx.globalAlpha = Math.max(0, p.life);
-      ctx.shadowBlur = 10;
+      ctx.shadowBlur = 8;
       ctx.shadowColor = p.color;
       ctx.fillStyle = p.color;
       ctx.beginPath();
@@ -143,13 +133,12 @@ const FX = {
       ctx.restore();
     });
 
-    // Render floating text
     this.floatTexts.forEach(ft => {
       ctx.save();
       ctx.globalAlpha = Math.max(0, ft.alpha);
-      ctx.font = "bold 24px sans-serif";
+      ctx.font = "bold 22px 'Rajdhani', sans-serif";
       ctx.fillStyle = ft.color;
-      ctx.shadowBlur = 8;
+      ctx.shadowBlur = 10;
       ctx.shadowColor = ft.color;
       ctx.fillText(ft.text, ft.x, ft.y);
       ctx.restore();
@@ -157,9 +146,11 @@ const FX = {
   }
 };
 
-// --- SCENE MANAGER ---
+// --- SCENE MANAGER & DEBUG TOOLKIT ---
 const scenes = {};
 let currentSceneName = 'flappy';
+let debugMode = false;
+let fps = 0, frameCount = 0, fpsTimer = 0;
 
 function registerScene(name, sceneObj) {
   scenes[name] = sceneObj;
@@ -172,22 +163,30 @@ function switchGame(name, evt) {
   FX.particles = [];
   FX.floatTexts = [];
 
-  document.querySelectorAll('.game-btn').forEach(btn => btn.classList.remove('active'));
-  if (evt && evt.target) evt.target.classList.add('active');
+  document.querySelectorAll('.game-tab').forEach(btn => btn.classList.remove('active'));
+  if (evt && evt.currentTarget) evt.currentTarget.classList.add('active');
 
   scenes[name].init();
   gameInfo.innerHTML = scenes[name].instruction || "";
 }
 
-// --- ENGINE LOOP (DENGAN SCREEN SHAKE & DELTA TIME) ---
+// --- MAIN LOOP ---
 let lastTime = performance.now();
 
 function mainLoop(now) {
-  const dt = Math.min((now - lastTime) / 1000, 0.1); // Detik
+  const rawDt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
 
+  // Penghitungan FPS Real-time
+  frameCount++;
+  fpsTimer += rawDt;
+  if (fpsTimer >= 0.5) {
+    fps = Math.round((frameCount / fpsTimer));
+    frameCount = 0;
+    fpsTimer = 0;
+  }
+
   ctx.save();
-  // Terapkan Screen Shake jika aktif
   if (FX.shakeTimer > 0) {
     const rx = (Math.random() - 0.5) * FX.shakeIntensity;
     const ry = (Math.random() - 0.5) * FX.shakeIntensity;
@@ -196,26 +195,52 @@ function mainLoop(now) {
 
   const activeScene = scenes[currentSceneName];
   if (activeScene) {
-    activeScene.update(dt);
+    activeScene.update(rawDt);
     activeScene.render(ctx);
+
+    if (debugMode && activeScene.renderDebug) {
+      activeScene.renderDebug(ctx);
+    }
   }
 
-  FX.update();
+  FX.update(rawDt);
   FX.render(ctx);
   ctx.restore();
+
+  // Render Debug Profiler jika aktif
+  if (debugMode) {
+    ctx.save();
+    ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+    ctx.fillRect(canvas.width - 240, 10, 230, 90);
+    ctx.strokeStyle = "#00f2fe";
+    ctx.strokeRect(canvas.width - 240, 10, 230, 90);
+    ctx.fillStyle = "#00f2fe";
+    ctx.font = "14px monospace";
+    ctx.fillText(`PROFILER ACTIVE (D / ~)`, canvas.width - 230, 30);
+    ctx.fillStyle = fps >= 55 ? "#00e676" : "#ff1744";
+    ctx.fillText(`ENGINE FPS   : ${fps}`, canvas.width - 230, 50);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(`DELTA TIME   : ${(rawDt * 1000).toFixed(2)} ms`, canvas.width - 230, 70);
+    ctx.fillText(`PARTICLES    : ${FX.particles.length}`, canvas.width - 230, 90);
+    ctx.restore();
+  }
 
   requestAnimationFrame(mainLoop);
 }
 
-// --- GLOBAL EVENT LISTENERS DENGAN DUKUNGAN TOUCH & KEYBOARD ---
+// --- EVENT INPUT HANDLING ---
 window.addEventListener("keydown", (e) => {
   AudioEngine.init();
+  if (e.code === "KeyD" || e.code === "Backquote") {
+    debugMode = !debugMode;
+    return;
+  }
   if (scenes[currentSceneName]?.onKeyDown) {
     scenes[currentSceneName].onKeyDown(e);
   }
 });
 
-function handleCanvasPointer(clientX, clientY) {
+function handlePointer(clientX, clientY) {
   AudioEngine.init();
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
@@ -228,16 +253,17 @@ function handleCanvasPointer(clientX, clientY) {
   }
 }
 
-canvas.addEventListener("mousedown", (e) => handleCanvasPointer(e.clientX, e.clientY));
+canvas.addEventListener("mousedown", (e) => handlePointer(e.clientX, e.clientY));
 canvas.addEventListener("touchstart", (e) => {
   if (e.touches.length > 0) {
-    handleCanvasPointer(e.touches[0].clientX, e.touches[0].clientY);
+    handlePointer(e.touches[0].clientX, e.touches[0].clientY);
   }
   e.preventDefault();
 }, { passive: false });
 
-// Start Engine
 window.addEventListener("DOMContentLoaded", () => {
-  switchGame('flappy');
+  if (scenes[currentSceneName]) {
+    switchGame(currentSceneName);
+  }
   requestAnimationFrame(mainLoop);
 });
