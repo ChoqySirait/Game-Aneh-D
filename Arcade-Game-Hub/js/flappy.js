@@ -1,27 +1,25 @@
 const FlappyGame = {
-  instruction: "Lompat: <b>SPASI / Klik Layar</b> | Perisai: <b>SHIFT / Double Tap</b>",
+  instruction: "Lompat: <b>SPASI / Klik</b> | Perisai: <b>SHIFT / Tap Atas</b> | Mode Debug: <b>D</b>",
   eagleImg: null,
   pipeImg: null,
-
   state: {},
 
   init() {
-    this.preloadAssets();
+    this.loadAssets();
     const savedHighScore = localStorage.getItem("flappy_high_score") || 0;
     this.state = {
-      birdX: 120, birdY: 400, birdWidth: 75, birdHeight: 60,
-      gravity: 1200, velocity: 0, jumpStrength: -480,
-      isShieldActive: false, shieldDuration: 4.5, shieldTimeLeft: 0,
-      shieldCooldown: 8, shieldCooldownLeft: 0,
-      pipes: [], pipeWidth: 105, baseGap: 290, baseSpeed: 230,
+      birdX: 130, birdY: 420, birdWidth: 72, birdHeight: 56,
+      gravity: 1250, velocity: 0, jump: -470,
+      isShieldActive: false, shieldDuration: 4.0, shieldTimeLeft: 0,
+      shieldCooldown: 7, shieldCooldownLeft: 0,
+      pipes: [], pipeWidth: 105, baseGap: 280, baseSpeed: 240,
       score: 0, highScore: parseInt(savedHighScore),
       isGameOver: false, isStarted: false,
-      spawnTimer: 0, spawnInterval: 1.8,
-      trailTimer: 0
+      spawnTimer: 0, grazeStreak: 0
     };
   },
 
-  preloadAssets() {
+  loadAssets() {
     if (!this.eagleImg) {
       this.eagleImg = new Image();
       this.eagleImg.src = "data:image/svg+xml;utf8," + encodeURIComponent(`
@@ -42,13 +40,13 @@ const FlappyGame = {
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 500" preserveAspectRatio="none">
           <defs>
             <linearGradient id="pGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-              <stop offset="0%" stop-color="#004d40" />
-              <stop offset="40%" stop-color="#00bfa5" />
-              <stop offset="100%" stop-color="#004d40" />
+              <stop offset="0%" stop-color="#003b46" />
+              <stop offset="50%" stop-color="#007991" />
+              <stop offset="100%" stop-color="#003b46" />
             </linearGradient>
           </defs>
           <rect x="5" y="0" width="90" height="500" fill="url(#pGrad)" stroke="#00f2fe" stroke-width="2"/>
-          <rect x="0" y="0" width="100" height="32" fill="url(#pGrad)" stroke="#00f2fe" stroke-width="2" rx="6"/>
+          <rect x="0" y="0" width="100" height="30" fill="url(#pGrad)" stroke="#00f2fe" stroke-width="2" rx="6"/>
         </svg>
       `);
     }
@@ -58,23 +56,13 @@ const FlappyGame = {
     const s = this.state;
     if (!s.isStarted || s.isGameOver) return;
 
-    // Perhitungan Kecepatan & Gap Berbasis Skor
-    const difficultyMultiplier = Math.min(1.8, 1 + Math.floor(s.score / 5) * 0.08);
-    const speed = s.baseSpeed * difficultyMultiplier;
-    const currentGap = Math.max(210, s.baseGap - Math.floor(s.score / 5) * 10);
+    const diff = Math.min(1.8, 1 + Math.floor(s.score / 5) * 0.08);
+    const speed = s.baseSpeed * diff;
+    const currentGap = Math.max(210, s.baseGap - Math.floor(s.score / 5) * 8);
 
-    // Fisika Gravitasi Menggunakan Delta Time
     s.velocity += s.gravity * dt;
     s.birdY += s.velocity * dt;
 
-    // Jejak Partikel Bulu Burung
-    s.trailTimer += dt;
-    if (s.trailTimer > 0.08) {
-      s.trailTimer = 0;
-      FX.spawnParticles(s.birdX, s.birdY + s.birdHeight / 2, s.isShieldActive ? "#ff0055" : "#00f2fe", 1, 1);
-    }
-
-    // Cooldown & Durasi Shield
     if (s.isShieldActive) {
       s.shieldTimeLeft -= dt;
       if (s.shieldTimeLeft <= 0) s.isShieldActive = false;
@@ -82,60 +70,78 @@ const FlappyGame = {
       s.shieldCooldownLeft -= dt;
     }
 
-    // Spawning Pipes
     s.spawnTimer += dt;
-    if (s.spawnTimer >= (s.spawnInterval / difficultyMultiplier)) {
+    if (s.spawnTimer >= (1.7 / diff)) {
       s.spawnTimer = 0;
-      const topPipe = Math.floor(Math.random() * (canvas.height - currentGap - 280)) + 120;
-      s.pipes.push({ x: canvas.width, top: topPipe, gap: currentGap, passed: false });
+      const topPipe = Math.floor(Math.random() * (canvas.height - currentGap - 260)) + 120;
+      s.pipes.push({ x: canvas.width, top: topPipe, gap: currentGap, passed: false, grazed: false });
     }
 
-    // Update Pipa & Tabrakan
+    const hitM = 10;
+    const bBox = {
+      l: s.birdX + hitM,
+      r: s.birdX + s.birdWidth - hitM,
+      t: s.birdY + hitM,
+      b: s.birdY + s.birdHeight - hitM
+    };
+
     for (let i = s.pipes.length - 1; i >= 0; i--) {
       const p = s.pipes[i];
       p.x -= speed * dt;
 
-      // Skor Lewat Pipa
+      // Score Trigger
       if (!p.passed && p.x + s.pipeWidth < s.birdX) {
         s.score++;
         p.passed = true;
-        AudioEngine.play('score');
-        FX.spawnText(s.birdX, s.birdY - 20, "+1", "#00e676");
+        AudioEngine.playArpeggio(s.score);
+        FX.spawnText(s.birdX, s.birdY - 15, "+1", "#00e676");
         if (s.score > s.highScore) {
           s.highScore = s.score;
           localStorage.setItem("flappy_high_score", s.highScore);
         }
       }
 
-      // Deteksi Tabrakan Presisi
-      const hitMargin = 12;
-      const collideX = s.birdX + s.birdWidth - hitMargin > p.x && s.birdX + hitMargin < p.x + s.pipeWidth;
-      const collideY = s.birdY + hitMargin < p.top || s.birdY + s.birdHeight - hitMargin > p.top + p.gap;
+      // NEAR-MISS / GRAZE MECHANIC: Menyerempet dekat tepi pipa tanpa tabrakan
+      const grazeZone = 18;
+      const inX = bBox.r > p.x - grazeZone && bBox.l < p.x + s.pipeWidth + grazeZone;
+      const nearTop = Math.abs(bBox.t - p.top) < grazeZone;
+      const nearBottom = Math.abs(bBox.b - (p.top + p.gap)) < grazeZone;
 
-      if (collideX && collideY) {
+      if (!p.grazed && inX && (nearTop || nearBottom)) {
+        p.grazed = true;
+        s.score += 2;
+        AudioEngine.play('graze');
+        FX.spawnText(s.birdX + 20, s.birdY, "GRAZE! +2", "#ffeb3b");
+        FX.spawnParticles(s.birdX + s.birdWidth / 2, s.birdY + s.birdHeight / 2, "#ffeb3b", 12, 4);
+      }
+
+      // Collision Check
+      const colX = bBox.r > p.x && bBox.l < p.x + s.pipeWidth;
+      const colY = bBox.t < p.top || bBox.b > p.top + p.gap;
+
+      if (colX && colY) {
         if (s.isShieldActive) {
-          FX.triggerShake(8, 8);
-          FX.spawnParticles(p.x + s.pipeWidth / 2, p.top, "#ff1744", 25, 10);
-          p.x = -999; // Hancurkan pipa seketika
+          FX.triggerShake(10, 8);
+          FX.spawnParticles(p.x + s.pipeWidth / 2, p.top, "#ff1744", 25, 8);
+          p.x = -999;
         } else {
-          this.triggerGameOver();
+          this.gameOver();
         }
       }
 
       if (p.x < -s.pipeWidth) s.pipes.splice(i, 1);
     }
 
-    // Tabrak Batas Atas / Bawah
-    if (s.birdY + s.birdHeight > canvas.height || s.birdY < -20) {
-      this.triggerGameOver();
+    if (s.birdY + s.birdHeight > canvas.height || s.birdY < -30) {
+      this.gameOver();
     }
   },
 
-  triggerGameOver() {
+  gameOver() {
     if (this.state.isGameOver) return;
     this.state.isGameOver = true;
     AudioEngine.play('hit');
-    FX.triggerShake(20, 15);
+    FX.triggerShake(22, 14);
     FX.spawnParticles(this.state.birdX, this.state.birdY, "#ff1744", 30, 8);
   },
 
@@ -143,25 +149,25 @@ const FlappyGame = {
     const s = this.state;
     if (!s.isStarted) {
       s.isStarted = true;
-      s.velocity = s.jumpStrength;
-      AudioEngine.play('jump');
+      s.velocity = s.jump;
+      AudioEngine.playArpeggio(0);
     } else if (s.isGameOver) {
       this.init();
     } else {
-      s.velocity = s.jumpStrength;
-      AudioEngine.play('jump');
-      FX.spawnParticles(s.birdX, s.birdY + s.birdHeight, "#ffffff", 4, 3);
+      s.velocity = s.jump;
+      AudioEngine.playArpeggio(s.score);
+      FX.spawnParticles(s.birdX, s.birdY + s.birdHeight, "#00f2fe", 4, 3);
     }
   },
 
-  activateShield() {
+  useShield() {
     const s = this.state;
     if (s.isStarted && !s.isGameOver && !s.isShieldActive && s.shieldCooldownLeft <= 0) {
       s.isShieldActive = true;
       s.shieldTimeLeft = s.shieldDuration;
       s.shieldCooldownLeft = s.shieldCooldown;
-      AudioEngine.play('shield');
-      FX.spawnParticles(s.birdX, s.birdY, "#ff007f", 20, 6);
+      AudioEngine.playTone(550, 'sawtooth', 0.25, 0.2);
+      FX.spawnParticles(s.birdX, s.birdY, "#ff007f", 20, 5);
     }
   },
 
@@ -171,14 +177,13 @@ const FlappyGame = {
       e.preventDefault();
     }
     if (e.code === "ShiftLeft" || e.code === "ShiftRight") {
-      this.activateShield();
+      this.useShield();
     }
   },
 
   onPointerDown(x, y) {
-    // Tap biasa = jump, jika klik bagian atas = shield
-    if (y < 200 && this.state.isStarted && !this.state.isGameOver) {
-      this.activateShield();
+    if (y < 220 && this.state.isStarted && !this.state.isGameOver) {
+      this.useShield();
     } else {
       this.jump();
     }
@@ -186,89 +191,93 @@ const FlappyGame = {
 
   render(ctx) {
     const s = this.state;
-
-    // Latar Belakang Gradasi Cyber Night
     const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
     bgGrad.addColorStop(0, "#050b14");
-    bgGrad.addColorStop(0.6, "#0e1e38");
-    bgGrad.addColorStop(1, "#1b3358");
+    bgGrad.addColorStop(0.7, "#0f1c30");
+    bgGrad.addColorStop(1, "#182c4c");
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Render Rintangan Pipa
     for (let p of s.pipes) {
-      // Pipa Atas (Dibalik Vertikal)
       ctx.save();
       ctx.translate(p.x + s.pipeWidth / 2, p.top / 2);
       ctx.scale(1, -1);
       ctx.drawImage(this.pipeImg, -s.pipeWidth / 2, -p.top / 2, s.pipeWidth, p.top);
       ctx.restore();
-
-      // Pipa Bawah
       ctx.drawImage(this.pipeImg, p.x, p.top + p.gap, s.pipeWidth, canvas.height - (p.top + p.gap));
     }
 
-    // Render Burung Elang
     ctx.save();
     ctx.translate(s.birdX + s.birdWidth / 2, s.birdY + s.birdHeight / 2);
-    const targetAngle = Math.min(Math.PI / 4, Math.max(-Math.PI / 4, s.velocity / 600));
-    ctx.rotate(targetAngle);
+    ctx.rotate(Math.min(Math.PI / 4, Math.max(-Math.PI / 4, s.velocity / 650)));
 
     if (s.isShieldActive) {
-      ctx.shadowBlur = 40;
-      ctx.shadowColor = "#ff0055";
-      ctx.strokeStyle = "#ff0055";
+      ctx.shadowBlur = 30;
+      ctx.shadowColor = "#ff007f";
+      ctx.strokeStyle = "#ff007f";
       ctx.lineWidth = 4;
-      ctx.strokeRect(-s.birdWidth / 2 - 8, -s.birdHeight / 2 - 8, s.birdWidth + 16, s.birdHeight + 16);
+      ctx.strokeRect(-s.birdWidth / 2 - 6, -s.birdHeight / 2 - 6, s.birdWidth + 12, s.birdHeight + 12);
     }
     ctx.drawImage(this.eagleImg, -s.birdWidth / 2, -s.birdHeight / 2, s.birdWidth, s.birdHeight);
     ctx.restore();
 
-    // UI Skor & High Score
+    // HUD Text
     ctx.fillStyle = "#ffffff";
-    ctx.font = "bold 40px sans-serif";
+    ctx.font = "bold 42px 'Orbitron', monospace";
     ctx.fillText("Skor: " + s.score, 35, 65);
 
     ctx.fillStyle = "#ffc107";
-    ctx.font = "bold 24px sans-serif";
-    ctx.fillText("Rekor: " + s.highScore, 35, 105);
+    ctx.font = "bold 22px 'Rajdhani', sans-serif";
+    ctx.fillText("High Score: " + s.highScore, 35, 100);
 
-    // Status Perisai
-    ctx.font = "bold 22px sans-serif";
     if (s.isShieldActive) {
-      ctx.fillStyle = "#ff1744";
-      ctx.fillText(`⚡ PERISAI: ${s.shieldTimeLeft.toFixed(1)}s`, 35, 145);
+      ctx.fillStyle = "#ff007f";
+      ctx.fillText(`⚡ PERISAI: ${s.shieldTimeLeft.toFixed(1)}s`, 35, 135);
     } else if (s.shieldCooldownLeft > 0) {
       ctx.fillStyle = "#ffeb3b";
-      ctx.fillText(`⏳ Cooldown: ${Math.ceil(s.shieldCooldownLeft)}s`, 35, 145);
+      ctx.fillText(`⏳ Cooldown: ${Math.ceil(s.shieldCooldownLeft)}s`, 35, 135);
     } else {
       ctx.fillStyle = "#00e676";
-      ctx.fillText("🛡️ Perisai SIAP (Shift)", 35, 145);
+      ctx.fillText("🛡️ Perisai READY (Shift)", 35, 135);
     }
 
-    // Layar Mulai & Game Over
     if (!s.isStarted) {
-      ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
+      ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#00f2fe";
-      ctx.font = "bold 52px sans-serif";
-      ctx.fillText("FLAPPY EAGLE", 175, 480);
+      ctx.font = "bold 46px 'Orbitron', monospace";
+      ctx.fillText("FLAPPY EAGLE", 160, 480);
       ctx.fillStyle = "#ffffff";
-      ctx.font = "26px sans-serif";
-      ctx.fillText("Ketuk Layar / SPASI untuk Mulai", 175, 540);
+      ctx.font = "24px 'Rajdhani', sans-serif";
+      ctx.fillText("Ketuk Layar / SPASI untuk Mulai", 190, 540);
     } else if (s.isGameOver) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.fillStyle = "#ff1744";
-      ctx.font = "bold 58px sans-serif";
-      ctx.fillText("GAME OVER", 185, 480);
+      ctx.font = "bold 56px 'Orbitron', monospace";
+      ctx.fillText("GAME OVER", 175, 480);
       ctx.fillStyle = "#ffffff";
-      ctx.font = "30px sans-serif";
+      ctx.font = "28px 'Rajdhani', sans-serif";
       ctx.fillText("Skor Akhir: " + s.score, 260, 540);
       ctx.fillStyle = "#ffeb3b";
-      ctx.font = "24px sans-serif";
-      ctx.fillText("Tekan SPASI / Ketuk untuk restart", 180, 600);
+      ctx.fillText("Tekan SPASI untuk Restart", 210, 600);
     }
+  },
+
+  renderDebug(ctx) {
+    const s = this.state;
+    ctx.save();
+    ctx.strokeStyle = "#00ff66";
+    ctx.lineWidth = 2;
+    const hitM = 10;
+    ctx.strokeRect(s.birdX + hitM, s.birdY + hitM, s.birdWidth - hitM * 2, s.birdHeight - hitM * 2);
+
+    ctx.strokeStyle = "#ff0055";
+    for (let p of s.pipes) {
+      ctx.strokeRect(p.x, 0, s.pipeWidth, p.top);
+      ctx.strokeRect(p.x, p.top + p.gap, s.pipeWidth, canvas.height - (p.top + p.gap));
+    }
+    ctx.restore();
   }
 };
 
