@@ -1,10 +1,10 @@
 // =================================================================
-// ⚡ CYBER BEAT DASH (Rhythm Music Engine)
+// ⚡ CYBER BEAT DASH (Rhythm Music Engine - FIXED)
 // Controls: D, F, J, K or Direct Lane Touch
 // =================================================================
 
 const RhythmGame = {
-  instruction: "Ketuk Jalur Sesuai Not: <b>D - F - J - K</b> atau <b>Sentuh Layar</b>",
+  instruction: "Ketuk Jalur: <b>D - F - J - K</b> atau <b>Sentuh Jalur di Layar</b> | Mulai: <b>SPASI</b>",
   state: {},
   laneKeys: ["KeyD", "KeyF", "KeyJ", "KeyK"],
   laneColors: ["#00f2fe", "#ff007f", "#ffea00", "#00e676"],
@@ -18,7 +18,7 @@ const RhythmGame = {
       highScore: parseInt(savedHighScore),
       combo: 0,
       multiplier: 1,
-      speed: 680, // Kecepatan meluncur not
+      speed: 680,
       spawnTimer: 0,
       spawnInterval: 0.45,
       hitZoneY: canvas.height - 180,
@@ -33,14 +33,14 @@ const RhythmGame = {
     const s = this.state;
     if (!s.isStarted || s.isGameOver) return;
 
-    // Drain darah perlahan jika tidak ada aksi
+    // Pengurangan HP bertahap jika tidak ada aksi
     s.health = Math.max(0, s.health - 2.5 * dt);
     if (s.health <= 0) {
       this.gameOver();
       return;
     }
 
-    // Spawn Not Dinamis Berpola
+    // Spawn Not
     s.spawnTimer += dt;
     if (s.spawnTimer >= s.spawnInterval) {
       s.spawnTimer = 0;
@@ -50,16 +50,15 @@ const RhythmGame = {
         y: -40,
         hit: false
       });
-      // Sedikit variasikan interval agar tidak monoton
       s.spawnInterval = Math.max(0.25, 0.45 - Math.floor(s.score / 200) * 0.03);
     }
 
-    // Update Gerakan Not
+    // Pergerakan Not
     for (let i = s.notes.length - 1; i >= 0; i--) {
       const n = s.notes[i];
       n.y += s.speed * dt;
 
-      // Terlewat (MISS)
+      // Kondisi MISS (Terlewat)
       if (n.y > s.hitZoneY + s.hitZoneHeight + 20 && !n.hit) {
         s.notes.splice(i, 1);
         s.combo = 0;
@@ -80,10 +79,11 @@ const RhythmGame = {
     }
     if (s.isGameOver) {
       this.init();
+      s.isStarted = true;
       return;
     }
 
-    const hitWindow = 70;
+    const hitWindow = 85;
     let hitFound = false;
 
     for (let i = 0; i < s.notes.length; i++) {
@@ -96,9 +96,9 @@ const RhythmGame = {
           s.notes.splice(i, 1);
 
           s.combo++;
-          if (s.combo % 10 === 0 && s.multiplier < 8) s.multiplier++;
+          if (s.combo % 8 === 0 && s.multiplier < 8) s.multiplier++;
 
-          const isPerfect = diff < 28;
+          const isPerfect = diff < 32;
           const points = (isPerfect ? 50 : 25) * s.multiplier;
           s.score += points;
           s.health = Math.min(100, s.health + 8);
@@ -126,7 +126,6 @@ const RhythmGame = {
     }
 
     if (!hitFound) {
-      // Menekan saat tidak ada not
       s.health = Math.max(0, s.health - 4);
       AudioEngine.playTone(180, 'sine', 0.05, 0.1);
     }
@@ -140,13 +139,19 @@ const RhythmGame = {
 
   onKeyDown(e) {
     if (e.code === "Space") {
-      if (!this.state.isStarted) this.state.isStarted = true;
-      else if (this.state.isGameOver) this.init();
+      if (!this.state.isStarted) {
+        this.state.isStarted = true;
+      } else if (this.state.isGameOver) {
+        this.init();
+        this.state.isStarted = true;
+      }
+      e.preventDefault();
       return;
     }
     const idx = this.laneKeys.indexOf(e.code);
     if (idx !== -1) {
       this.hitLane(idx);
+      e.preventDefault();
     }
   },
 
@@ -157,6 +162,7 @@ const RhythmGame = {
     }
     if (this.state.isGameOver) {
       this.init();
+      this.state.isStarted = true;
       return;
     }
     const laneWidth = canvas.width / this.state.lanes;
@@ -170,11 +176,11 @@ const RhythmGame = {
     const s = this.state;
     const laneWidth = canvas.width / s.lanes;
 
-    // Background Cyber Grid
+    // Latar Belakang
     ctx.fillStyle = "#05040d";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Garis Pemisah Jalur (Lanes)
+    // Garis Jalur
     for (let i = 0; i <= s.lanes; i++) {
       ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
       ctx.lineWidth = 2;
@@ -184,7 +190,7 @@ const RhythmGame = {
       ctx.stroke();
     }
 
-    // Target Hit Zone (Garis Penerima Not)
+    // Target Hit Zone
     ctx.save();
     ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
     ctx.fillRect(0, s.hitZoneY - 25, canvas.width, s.hitZoneHeight + 50);
@@ -194,16 +200,16 @@ const RhythmGame = {
     ctx.shadowColor = "#00f2fe";
     ctx.strokeRect(0, s.hitZoneY, canvas.width, s.hitZoneHeight);
 
-    // Huruf Panduan Jalur (D, F, J, K)
+    // Label Tombol (D, F, J, K)
     const labels = ["D", "F", "J", "K"];
     for (let i = 0; i < s.lanes; i++) {
       ctx.fillStyle = this.laneColors[i];
       ctx.font = "bold 32px 'Orbitron', monospace";
-      ctx.fillText(labels[i], i * laneWidth + laneWidth / 2 - 12, s.hitZoneY + 42);
+      ctx.fillText(labels[i], i * laneWidth + laneWidth / 2 - 14, s.hitZoneY + 42);
     }
     ctx.restore();
 
-    // Render Not-Not Meluncur
+    // Render Not
     for (let n of s.notes) {
       ctx.save();
       const color = this.laneColors[n.lane];
@@ -214,7 +220,7 @@ const RhythmGame = {
       ctx.restore();
     }
 
-    // Health Bar (Stamina Ritme)
+    // Health Bar
     ctx.fillStyle = "rgba(255, 255, 255, 0.1)";
     ctx.fillRect(35, 140, canvas.width - 70, 12);
     ctx.fillStyle = s.health > 30 ? "#00e676" : "#ff1744";
@@ -237,7 +243,7 @@ const RhythmGame = {
       ctx.fillText("BEAT DASH", 195, 480);
       ctx.fillStyle = "#ffffff";
       ctx.font = "24px 'Rajdhani', sans-serif";
-      ctx.fillText("Tekan D - F - J - K / Ketuk Jalur", 185, 540);
+      ctx.fillText("Tekan D - F - J - K / Ketuk Layar", 180, 540);
     } else if (s.isGameOver) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -252,3 +258,5 @@ const RhythmGame = {
     }
   }
 };
+
+registerScene('rhythm', RhythmGame);
