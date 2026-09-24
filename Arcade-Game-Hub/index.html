@@ -3,11 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>NeonPulse Arcade | Ultra Responsive Web Canvas</title>
+  <title>NeonPulse Arcade // 5-in-1 Cyber Engine</title>
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   
   <link rel="stylesheet" href="style.css">
 </head>
@@ -25,6 +25,7 @@
       <p class="subtitle">MICRO-ARCADE ENGINE // VANILLA JS</p>
     </header>
 
+    <!-- Navigasi 5 Game Penuh -->
     <nav class="game-nav" aria-label="Game Selection">
       <button class="game-tab active" onclick="switchGame('flappy', event)">
         <span class="icon">🦅</span>
@@ -43,23 +44,31 @@
       </button>
       <button class="game-tab" onclick="switchGame('rhythm', event)">
         <span class="icon">⚡</span>
-        <span class="tab-label">BEAT DASH</span>
+        <span class="tab-label">RHYTHM</span>
+        <span class="glow-indicator"></span>
+      </button>
+      <button class="game-tab" onclick="switchGame('swarm', event)">
+        <span class="icon">👾</span>
+        <span class="tab-label">SWARM</span>
         <span class="glow-indicator"></span>
       </button>
     </nav>
 
+    <!-- Frame Viewport CRT Layar Tabung -->
     <div class="viewport-frame">
       <div class="crt-scanline"></div>
       <div class="crt-vignette"></div>
       <div class="crt-glare"></div>
+      
       <canvas id="gameCanvas" width="720" height="1080"></canvas>
     </div>
 
+    <!-- HUD Dynamic Terminal -->
     <footer class="hud-panel">
       <div class="hud-terminal-header">
-        <span class="terminal-dot"></span>
-        <span class="terminal-dot"></span>
-        <span class="terminal-dot"></span>
+        <span class="terminal-dot red"></span>
+        <span class="terminal-dot yellow"></span>
+        <span class="terminal-dot green"></span>
         <span class="terminal-title">INPUT CONTROLLER</span>
       </div>
       <div class="hud-content" id="gameInfo">
@@ -68,10 +77,12 @@
     </footer>
   </main>
 
+  <!-- Script Modules (Engine Inti Dimuat Pertama) -->
   <script src="js/main.js"></script>
   <script src="js/flappy.js"></script>
   <script src="js/snake.js"></script>
   <script src="js/memory.js"></script>
   <script src="js/rhythm.js"></script>
+  <script src="js/swarm.js"></script>
 </body>
 </html>
