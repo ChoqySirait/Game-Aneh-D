@@ -8,19 +8,19 @@ const FlappyGame = {
       name: "CYBER NIGHT", 
       top: "#050b14", mid: "#0f1c30", bot: "#182c4c", 
       pipeColor: "#003b46", stroke: "#00f2fe", capColor: "#007991",
-      particleColor: "#00f2fe", style: "grid"
+      particleColor: "#00f2fe"
     },
     { 
       name: "NEON SUNSET", 
       top: "#20002c", mid: "#5b0e2d", bot: "#8a1c3d", 
       pipeColor: "#4a0e17", stroke: "#ff007f", capColor: "#ff7700",
-      particleColor: "#ffaa00", style: "stars"
+      particleColor: "#ffaa00"
     },
     { 
       name: "TOXIC MATRIX", 
       top: "#021307", mid: "#053014", bot: "#0a471c", 
       pipeColor: "#003314", stroke: "#00ff66", capColor: "#38b000",
-      particleColor: "#39ff14", style: "matrix"
+      particleColor: "#39ff14"
     }
   ],
 
@@ -37,11 +37,9 @@ const FlappyGame = {
       isGameOver: false, isStarted: false,
       spawnTimer: 0,
       
-      // SISTEM SKOR STABIL (Tidak gila-gilaan)
       multiplier: 1,
       pipeStreak: 0,
 
-      // WARP MAP
       biomeIndex: 0,
       isWarping: false,
       warpTimer: 0,
@@ -49,12 +47,10 @@ const FlappyGame = {
       speedLines: [],
       nextWarpScore: 500,
 
-      // Visual Background Partikel Biome
       ambientParticles: [],
       gridOffset: 0
     };
 
-    // Bikin partikel atmosfer
     for (let i = 0; i < 30; i++) {
       this.state.ambientParticles.push({
         x: Math.random() * canvas.width,
@@ -86,14 +82,12 @@ const FlappyGame = {
     const s = this.state;
     if (!s.isStarted || s.isGameOver) return;
 
-    // Gerakan lantai grid & partikel debu
     s.gridOffset = (s.gridOffset + 150 * dt) % 60;
     s.ambientParticles.forEach(p => {
       p.x -= p.speed * dt;
       if (p.x < 0) { p.x = canvas.width; p.y = Math.random() * canvas.height; }
     });
 
-    // FASE WARP ENGINE (Tiap kelipatan 500)
     if (s.isWarping) {
       s.warpTimer -= dt;
       s.velocity = 0;
@@ -168,12 +162,10 @@ const FlappyGame = {
       const p = s.pipes[i];
       p.x -= speed * dt;
 
-      // SKOR TERUKUR (1 Poin Dasar + Multiplier Berjenjang Maks 5x)
       if (!p.passed && p.x + s.pipeWidth < s.birdX) {
         p.passed = true;
         s.pipeStreak++;
 
-        // Naikkan pengali tiap 5 pipa bersih berturut-turut
         if (s.pipeStreak % 5 === 0 && s.multiplier < 5) {
           s.multiplier++;
           FX.spawnText(s.birdX, s.birdY - 45, `${s.multiplier}x COMBO!`, "#ffeb3b");
@@ -191,7 +183,6 @@ const FlappyGame = {
         }
       }
 
-      // Near-miss / Graze (Bonus flat 5 poin)
       const grazeZone = 18;
       const inX = bBox.r > p.x - grazeZone && bBox.l < p.x + s.pipeWidth + grazeZone;
       const nearTop = Math.abs(bBox.t - p.top) < grazeZone;
@@ -206,7 +197,6 @@ const FlappyGame = {
         FX.spawnParticles(s.birdX + s.birdWidth / 2, s.birdY + s.birdHeight / 2, "#ffeb3b", 12, 5);
       }
 
-      // Tabrakan
       const colX = bBox.r > p.x && bBox.l < p.x + s.pipeWidth;
       const colY = bBox.t < p.top || bBox.b > p.top + p.gap;
 
@@ -287,7 +277,6 @@ const FlappyGame = {
     const s = this.state;
     const currentBiome = this.biomes[s.biomeIndex];
 
-    // Background Gradient Sesuai Biome
     const bgGrad = ctx.createLinearGradient(0, 0, 0, canvas.height);
     bgGrad.addColorStop(0, currentBiome.top);
     bgGrad.addColorStop(0.6, currentBiome.mid);
@@ -295,7 +284,6 @@ const FlappyGame = {
     ctx.fillStyle = bgGrad;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Visual Lingkungan Biome: Bintang & Debu Kosmik
     ctx.save();
     ctx.fillStyle = currentBiome.particleColor;
     s.ambientParticles.forEach(p => {
@@ -306,7 +294,6 @@ const FlappyGame = {
     });
     ctx.restore();
 
-    // Visual Lingkungan: Grid Lantai Cyber Bergerak
     ctx.save();
     ctx.strokeStyle = currentBiome.stroke;
     ctx.globalAlpha = 0.15;
@@ -323,7 +310,6 @@ const FlappyGame = {
     ctx.stroke();
     ctx.restore();
 
-    // Efek Warp Lines
     if (s.isWarping) {
       ctx.save();
       ctx.strokeStyle = "#ffffff";
@@ -339,7 +325,6 @@ const FlappyGame = {
       ctx.restore();
     }
 
-    // Render Pipa Berornamen
     for (let p of s.pipes) {
       ctx.save();
       ctx.fillStyle = currentBiome.pipeColor;
@@ -348,13 +333,11 @@ const FlappyGame = {
       ctx.shadowBlur = 10;
       ctx.shadowColor = currentBiome.stroke;
 
-      // Badan Pipa
       ctx.fillRect(p.x, 0, s.pipeWidth, p.top);
       ctx.strokeRect(p.x, 0, s.pipeWidth, p.top);
       ctx.fillRect(p.x, p.top + p.gap, s.pipeWidth, canvas.height - (p.top + p.gap));
       ctx.strokeRect(p.x, p.top + p.gap, s.pipeWidth, canvas.height - (p.top + p.gap));
 
-      // Ornamen Kepala Pipa (Neon Caps)
       ctx.fillStyle = currentBiome.capColor;
       ctx.fillRect(p.x - 4, p.top - 24, s.pipeWidth + 8, 24);
       ctx.strokeRect(p.x - 4, p.top - 24, s.pipeWidth + 8, 24);
@@ -362,7 +345,6 @@ const FlappyGame = {
       ctx.fillRect(p.x - 4, p.top + p.gap, s.pipeWidth + 8, 24);
       ctx.strokeRect(p.x - 4, p.top + p.gap, s.pipeWidth + 8, 24);
 
-      // Neon Core Strip di tengah pipa
       ctx.fillStyle = currentBiome.stroke;
       ctx.fillRect(p.x + s.pipeWidth / 2 - 3, 0, 6, p.top - 24);
       ctx.fillRect(p.x + s.pipeWidth / 2 - 3, p.top + p.gap + 24, 6, canvas.height);
@@ -370,7 +352,6 @@ const FlappyGame = {
       ctx.restore();
     }
 
-    // Burung Elang
     ctx.save();
     ctx.translate(s.birdX + s.birdWidth / 2, s.birdY + s.birdHeight / 2);
     const targetAngle = s.isWarping ? 0 : Math.min(Math.PI / 4, Math.max(-Math.PI / 4, s.velocity / 650));
@@ -397,7 +378,6 @@ const FlappyGame = {
     ctx.drawImage(this.eagleImg, -s.birdWidth / 2, -s.birdHeight / 2, s.birdWidth, s.birdHeight);
     ctx.restore();
 
-    // UI
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 40px 'Orbitron', monospace";
     ctx.fillText("Skor: " + s.score, 35, 65);
