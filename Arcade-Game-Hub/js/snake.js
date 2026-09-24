@@ -20,7 +20,7 @@ const SnakeGame = {
     this.state = {
       snake: [{ x: 8, y: 12 }, { x: 7, y: 12 }, { x: 6, y: 12 }],
       dx: 1, dy: 0,
-      inputQueue: [], // BUFFER INPUT ANTI-LAG
+      inputQueue: [],
       food: { x: 12, y: 12 },
       score: 0, highScore: parseInt(savedHighScore),
       isGameOver: false, isStarted: false,
@@ -48,7 +48,6 @@ const SnakeGame = {
     const s = this.state;
     if (!s.isStarted || s.isGameOver) return;
 
-    // Evaluasi Tier Naga
     for (let i = this.dragonTiers.length - 1; i >= 0; i--) {
       if (s.score >= this.dragonTiers[i].scoreReq) {
         if (s.currentTier !== i) {
@@ -75,10 +74,8 @@ const SnakeGame = {
     if (s.stepTimer < interval) return;
     s.stepTimer = 0;
 
-    // AMBIL INPUT DARI QUEUE BUFFER (Solusi anti-lag double turn)
     if (s.inputQueue.length > 0) {
       const nextDir = s.inputQueue.shift();
-      // Cegah putar balik 180 derajat langsung
       if (!(nextDir.x === -s.dx && nextDir.y === 0) && !(nextDir.y === -s.dy && nextDir.x === 0)) {
         s.dx = nextDir.x;
         s.dy = nextDir.y;
@@ -89,7 +86,6 @@ const SnakeGame = {
     const cols = Math.floor(canvas.width / this.gridSize);
     const rows = Math.floor(canvas.height / this.gridSize);
 
-    // Tabrak Tembok / Badan
     if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows ||
         s.snake.some(p => p.x === head.x && p.y === head.y)) {
       this.gameOver();
@@ -98,7 +94,6 @@ const SnakeGame = {
 
     s.snake.unshift(head);
 
-    // Partikel Aura Sisik Naga
     if (s.currentTier > 0) {
       FX.spawnParticles(head.x * this.gridSize + 20, head.y * this.gridSize + 20, this.dragonTiers[s.currentTier].head, 1, 1.5);
     }
@@ -128,7 +123,6 @@ const SnakeGame = {
 
   queueMove(x, y) {
     if (!this.state.isStarted) this.state.isStarted = true;
-    // Simpan maksimal 2 antrean input gerakan berikutnya
     if (this.state.inputQueue.length < 2) {
       this.state.inputQueue.push({ x, y });
     }
@@ -153,7 +147,6 @@ const SnakeGame = {
 
   onKeyDown(e) {
     const s = this.state;
-    // CEGAH LAYAR SCROLL SAAT MENEKAN TOMBOL ARAH
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) {
       e.preventDefault();
     }
@@ -166,7 +159,6 @@ const SnakeGame = {
 
     if (e.code === "KeyB") this.triggerBulletTime();
 
-    // DUKUNGAN UNIVERSAL: PANAH / WASD / IJKL
     if (e.code === "ArrowUp" || e.code === "KeyW" || e.code === "KeyI") this.queueMove(0, -1);
     if (e.code === "ArrowDown" || e.code === "KeyS" || e.code === "KeyK") this.queueMove(0, 1);
     if (e.code === "ArrowLeft" || e.code === "KeyA" || e.code === "KeyJ") this.queueMove(-1, 0);
@@ -186,7 +178,6 @@ const SnakeGame = {
     ctx.fillStyle = s.bulletTimeActive ? "#020713" : "#04060d";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Grid Cyber
     ctx.strokeStyle = "rgba(0, 242, 254, 0.04)";
     for (let x = 0; x < canvas.width; x += this.gridSize) {
       ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
@@ -195,7 +186,6 @@ const SnakeGame = {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
     }
 
-    // Food (Dragon Pearl)
     const fx = s.food.x * this.gridSize + this.gridSize / 2;
     const fy = s.food.y * this.gridSize + this.gridSize / 2;
     ctx.save();
@@ -207,7 +197,6 @@ const SnakeGame = {
     ctx.fill();
     ctx.restore();
 
-    // RENDER NAGA & SISIK
     for (let i = 0; i < s.snake.length; i++) {
       const p = s.snake[i];
       const px = p.x * this.gridSize;
@@ -215,13 +204,11 @@ const SnakeGame = {
 
       ctx.save();
       if (i === 0) {
-        // Kepala Naga
         ctx.shadowBlur = 25;
         ctx.shadowColor = tier.head;
         ctx.fillStyle = tier.head;
         ctx.fillRect(px + 2, py + 2, this.gridSize - 4, this.gridSize - 4);
 
-        // Tanduk Naga Berkembang Sesuai Tier
         if (tier.horn) {
           ctx.fillStyle = tier.horn;
           ctx.beginPath();
@@ -234,12 +221,10 @@ const SnakeGame = {
           ctx.fill();
         }
 
-        // Mata Naga Menyala
         ctx.fillStyle = s.currentTier >= 7 ? "#ffffff" : "#ffff00";
         ctx.fillRect(px + 8, py + 12, 6, 6);
         ctx.fillRect(px + this.gridSize - 14, py + 12, 6, 6);
       } else {
-        // Badan Sisik Belang
         ctx.shadowBlur = 8;
         ctx.shadowColor = tier.body1;
         ctx.fillStyle = (i % 2 === 0) ? tier.body1 : tier.body2;
@@ -248,7 +233,6 @@ const SnakeGame = {
       ctx.restore();
     }
 
-    // UI Panel
     ctx.fillStyle = "#ffffff";
     ctx.font = "bold 40px 'Orbitron', monospace";
     ctx.fillText("Skor: " + s.score, 35, 65);
