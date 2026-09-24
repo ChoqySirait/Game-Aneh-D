@@ -1,6 +1,5 @@
 // =================================================================
-// 🚀 NEON PULSE ADVANCED ENGINE
-// Features: Delta-Time, Fixed Physics, Procedural Chords, Debug HUD
+// 🚀 NEON PULSE CORE ENGINE
 // =================================================================
 
 const canvas = document.getElementById("gameCanvas");
@@ -62,7 +61,7 @@ const AudioEngine = {
       osc.start(now);
       osc.stop(now + 0.3);
     } else if (type === 'graze') {
-      this.playTone(880, 'sine', 0.06, 0.08); // Tingging mendesing tajam
+      this.playTone(880, 'sine', 0.06, 0.08);
     } else if (type === 'slowmo') {
       this.playTone(150, 'sawtooth', 0.4, 0.2);
     }
@@ -177,7 +176,6 @@ function mainLoop(now) {
   const rawDt = Math.min((now - lastTime) / 1000, 0.1);
   lastTime = now;
 
-  // Penghitungan FPS Real-time
   frameCount++;
   fpsTimer += rawDt;
   if (fpsTimer >= 0.5) {
@@ -207,7 +205,6 @@ function mainLoop(now) {
   FX.render(ctx);
   ctx.restore();
 
-  // Render Debug Profiler jika aktif
   if (debugMode) {
     ctx.save();
     ctx.fillStyle = "rgba(0, 0, 0, 0.75)";
@@ -260,6 +257,18 @@ canvas.addEventListener("touchstart", (e) => {
   }
   e.preventDefault();
 }, { passive: false });
+
+// Mouse Move Tracking untuk Swarm Game
+canvas.addEventListener("mousemove", (e) => {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const active = scenes[currentSceneName];
+  if (active && active.state) {
+    active.state.targetX = (e.clientX - rect.left) * scaleX;
+    active.state.targetY = (e.clientY - rect.top) * scaleY;
+  }
+});
 
 window.addEventListener("DOMContentLoaded", () => {
   if (scenes[currentSceneName]) {
