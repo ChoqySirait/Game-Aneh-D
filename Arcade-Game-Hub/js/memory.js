@@ -29,7 +29,6 @@ const MemoryGame = {
     const theme = this.getCurrentTheme();
     s.phase = 'SHOW';
     
-    // Semakin tinggi level, waktu hafalan semakin cepat
     s.showTimer = Math.max(0.35, 1.4 - (s.level - 1) * 0.08);
     s.activeTiles = [];
     s.selectedTiles = [];
