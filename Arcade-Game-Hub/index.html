@@ -3,8 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>CyberBrawl 2D // Neon Protocol</title>
+  <title>NEON PULSE // Gaming Platform</title>
 
+  <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -12,59 +13,151 @@
 </head>
 <body>
 
-  <!-- Kanvas Utama Game Layar Penuh -->
-  <canvas id="gameCanvas"></canvas>
+  <!-- Ambient Background Glow -->
+  <div class="ambient-glow bg-cyan"></div>
+  <div class="ambient-glow bg-magenta"></div>
 
-  <!-- Overlay UI / HUD MOBA -->
-  <div id="hudLayer">
-    <!-- Top-Left: Player Stats Card -->
-    <div class="hud-card player-stats">
-      <div class="player-header">
-        <span class="badge-level" id="hudPlayerLevel">LV. 1</span>
-        <span class="player-name">CYBER_OPERATOR</span>
-      </div>
-      <div class="bar-container hp-bar-bg">
-        <div class="bar-fill hp-bar-fill" id="hudHpBar"></div>
-        <span class="bar-text" id="hudHpText">100 / 100</span>
-      </div>
-      <div class="bar-container exp-bar-bg">
-        <div class="bar-fill exp-bar-fill" id="hudExpBar"></div>
-        <span class="bar-text" id="hudExpText">0 / 100 XP</span>
-      </div>
-    </div>
+  <!-- ==================================================== -->
+  <!-- 🏠 1. BERANDA / LOBBY PORTAL (Katalog Game)          -->
+  <!-- ==================================================== -->
+  <div id="lobbyScreen" class="active">
+    <header class="lobby-header">
+      <div class="badge-status"><span class="live-dot"></span> NEON PLATFORM OS v3.0</div>
+      <h1 class="portal-title">NEON PULSE</h1>
+      <p class="portal-subtitle">OFFLINE GAMING HUB // CHOOSE YOUR PROTOCOL</p>
+    </header>
 
-    <!-- Top-Right: Radar Minimap & Match Tracker -->
-    <div class="hud-top-right">
-      <div class="hud-card match-info">
-        <span class="alive-counter">OPERATORS: <b id="hudAliveCount">10</b></span>
-        <span class="kill-counter">KILLS: <b id="hudKillCount">0</b></span>
+    <div class="game-catalog">
+      <!-- Card 1: CyberBrawl 2D (FLAGSHIP BATTLEGROUND) -->
+      <div class="game-card featured" onclick="launchGame('brawl')">
+        <div class="card-badge">🔥 FLAGSHIP MOBA</div>
+        <div class="card-icon">⚔️</div>
+        <h3 class="card-title">CYBERBRAWL 2D</h3>
+        <p class="card-desc">10-Player Offline Battleground. Jelajahi arena 2400x2400, loot peti data, stealth bush, dan bertahan dari Firewall Ring.</p>
+        <div class="card-tags">
+          <span>SURVIVAL</span><span>MOBA</span><span>AI BOTS</span>
+        </div>
+        <button class="btn-play">MAINKAN SEKARANG</button>
       </div>
-      <div class="minimap-wrapper">
-        <canvas id="minimapCanvas" width="160" height="160"></canvas>
-      </div>
-    </div>
 
-    <!-- Bottom-Center: Skill Cooldown & Action Deck -->
-    <div class="skill-deck">
-      <div class="skill-slot" id="slotDash">
-        <span class="skill-key">SPACE</span>
-        <span class="skill-icon">⚡</span>
-        <span class="skill-name">BLINK</span>
-        <div class="cooldown-overlay" id="cdDash"></div>
+      <!-- Card 2: Beat Dash -->
+      <div class="game-card" onclick="launchGame('rhythm')">
+        <div class="card-badge">RHYTHM</div>
+        <div class="card-icon">⚡</div>
+        <h3 class="card-title">BEAT DASH</h3>
+        <p class="card-desc">Pseudo-3D Highway. Ikuti alunan tempo 128 BPM Synthwave dan tekan tombol nada secara presisi.</p>
+        <div class="card-tags"><span>MUSIC</span><span>3D TRACK</span></div>
+        <button class="btn-play">LAUNCH</button>
       </div>
-      <div class="skill-slot" id="slotUltimate">
-        <span class="skill-key">E / R-CLICK</span>
-        <span class="skill-icon">🌀</span>
-        <span class="skill-name">SINGULARITY</span>
-        <div class="cooldown-overlay" id="cdUltimate"></div>
+
+      <!-- Card 3: Cyber Swarm -->
+      <div class="game-card" onclick="launchGame('swarm')">
+        <div class="card-badge">ACTION</div>
+        <div class="card-icon">👾</div>
+        <h3 class="card-title">CYBER SWARM</h3>
+        <p class="card-desc">Arena Survivor. Kendalikan drone penembak plasma otomatis dan musnahkan gelombang antivirus.</p>
+        <div class="card-tags"><span>SURVIVOR</span><span>TWIN-STICK</span></div>
+        <button class="btn-play">LAUNCH</button>
+      </div>
+
+      <!-- Card 4: Cyber Dragon -->
+      <div class="game-card" onclick="launchGame('snake')">
+        <div class="card-badge">CLASSIC</div>
+        <div class="card-icon">🐉</div>
+        <h3 class="card-title">CYBER DRAGON</h3>
+        <p class="card-desc">Snake berevolusi hingga 8 wujud naga bertanduk emas, slow-motion bullet time, dan antrean input anti-lag.</p>
+        <div class="card-tags"><span>EVOLUTION</span><span>ARCADE</span></div>
+        <button class="btn-play">LAUNCH</button>
+      </div>
+
+      <!-- Card 5: Flappy Eagle -->
+      <div class="game-card" onclick="launchGame('flappy')">
+        <div class="card-badge">ARCADE</div>
+        <div class="card-icon">🦅</div>
+        <h3 class="card-title">FLAPPY EAGLE</h3>
+        <p class="card-desc">Endless Flyer dengan transisi Warp Drive tiap kelipatan 500 skor dan bonus mekanik menyerempet (Graze).</p>
+        <div class="card-tags"><span>ENDLESS</span><span>REFLEX</span></div>
+        <button class="btn-play">LAUNCH</button>
+      </div>
+
+      <!-- Card 6: Memory Matrix -->
+      <div class="game-card" onclick="launchGame('memory')">
+        <div class="card-badge">BRAIN</div>
+        <div class="card-icon">🧠</div>
+        <h3 class="card-title">MEMORY MATRIX</h3>
+        <p class="card-desc">Asah fokus memori spasial dengan ekspansi ukuran grid dinamis dari 3x3 hingga 6x6.</p>
+        <div class="card-tags"><span>PUZZLE</span><span>FOCUS</span></div>
+        <button class="btn-play">LAUNCH</button>
       </div>
     </div>
   </div>
 
-  <!-- Pemuatan Modul Skrip (Sprint 1) -->
-  <script src="js/core/camera.js"></script>
-  <script src="js/world/map.js"></script>
-  <script src="js/core/engine.js"></script>
+  <!-- ==================================================== -->
+  <!-- 🕹️ 2. LAYAR GAME CONTAINER (Tempat Game Berjalan)     -->
+  <!-- ==================================================== -->
+  <div id="gameScreen">
+    <!-- Top Universal Bar -->
+    <div class="platform-bar">
+      <button class="btn-back" onclick="exitToLobby()">🏠 KEMBALI KE LOBBY (ESC)</button>
+      <div id="activeGameTitle" class="active-game-title">PLAYING</div>
+      <div class="engine-badge">60 FPS // SYNTH AUDIO</div>
+    </div>
+
+    <!-- Viewport Container -->
+    <div id="viewportContainer" class="arcade-mode">
+      <canvas id="gameCanvas" width="720" height="1080"></canvas>
+
+      <!-- HUD Spesifik Khusus CyberBrawl 2D -->
+      <div id="brawlHud" class="brawl-hud hidden">
+        <div class="brawl-card player-stats">
+          <div class="player-header">
+            <span class="badge-level" id="brawlLevel">LV. 1</span>
+            <span class="player-name">CYBER_OPERATOR</span>
+          </div>
+          <div class="bar-container hp-bar-bg">
+            <div class="bar-fill hp-bar-fill" id="brawlHpBar"></div>
+            <span class="bar-text" id="brawlHpText">100 / 100</span>
+          </div>
+        </div>
+
+        <div class="brawl-top-right">
+          <div class="brawl-card match-info">
+            <span>OPERATORS: <b id="brawlAlive">10</b></span>
+            <span>KILLS: <b id="brawlKills">0</b></span>
+          </div>
+          <div class="minimap-wrapper">
+            <canvas id="minimapCanvas" width="140" height="140"></canvas>
+          </div>
+        </div>
+
+        <div class="brawl-skills">
+          <div class="skill-slot">
+            <span class="skill-key">SPACE</span>
+            <span class="skill-icon">⚡</span>
+            <span class="skill-name">BLINK</span>
+          </div>
+          <div class="skill-slot">
+            <span class="skill-key">E / R-CLICK</span>
+            <span class="skill-icon">🌀</span>
+            <span class="skill-name">NOVA</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HUD Instruksi Bawah untuk Game Arcade -->
+    <footer class="hud-panel" id="arcadeHudPanel">
+      <div class="hud-content" id="gameInfo">Gunakan keyboard/sentuhan layar untuk bermain.</div>
+    </footer>
+  </div>
+
+  <!-- Pemuatan Modul Skrip -->
   <script src="js/main.js"></script>
+  <script src="js/flappy.js"></script>
+  <script src="js/snake.js"></script>
+  <script src="js/memory.js"></script>
+  <script src="js/rhythm.js"></script>
+  <script src="js/swarm.js"></script>
+  <script src="js/brawl.js"></script>
 </body>
 </html>
