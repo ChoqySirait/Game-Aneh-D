@@ -205,7 +205,7 @@ function mainLoop(now) {
   requestAnimationFrame(mainLoop);
 }
 
-// --- GLOBAL EVENT LISTENERS ---
+// --- GLOBAL EVENT LISTENERS (TAMBAHKAN KEYUP AGAR BISA GERAK) ---
 window.addEventListener("keydown", (e) => {
   AudioEngine.init();
   if (e.code === "Escape") {
@@ -214,6 +214,13 @@ window.addEventListener("keydown", (e) => {
   }
   if (currentSceneName && scenes[currentSceneName]?.onKeyDown) {
     scenes[currentSceneName].onKeyDown(e);
+  }
+});
+
+// WAJIB ADA: Mengembalikan status tombol saat dilepas
+window.addEventListener("keyup", (e) => {
+  if (currentSceneName && scenes[currentSceneName]?.onKeyUp) {
+    scenes[currentSceneName].onKeyUp(e);
   }
 });
 
