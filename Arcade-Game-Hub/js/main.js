@@ -1,5 +1,5 @@
 // =================================================================
-// 🚀 NEON PULSE PLATFORM CORE ENGINE & ROUTER
+// 🚀 NEON PULSE PLATFORM CORE ENGINE & ROUTER (REVISED & ROBUST)
 // =================================================================
 
 const canvas = document.getElementById("gameCanvas");
@@ -59,10 +59,6 @@ const AudioEngine = {
       gain.connect(this.ctx.destination);
       osc.start(now);
       osc.stop(now + 0.25);
-    } else if (type === 'graze') {
-      this.playTone(880, 'sine', 0.05, 0.08);
-    } else if (type === 'slowmo') {
-      this.playTone(150, 'sawtooth', 0.3, 0.2);
     }
   }
 };
@@ -145,24 +141,22 @@ function launchGame(gameName) {
   gameScreen.classList.add("active");
 
   const titles = {
-    brawl: "⚔️ CYBERBRAWL 2D (BATTLEGROUND)",
-    rhythm: "⚡ BEAT DASH (RHYTHM HIGHWAY)",
-    swarm: "👾 CYBER SWARM (SURVIVOR)",
-    snake: "🐉 CYBER DRAGON (EVOLUTION)",
-    flappy: "🦅 FLAPPY EAGLE (WARP RUN)",
+    brawl: "⚔️ CYBERBRAWL 2D (WARZONE OVERDRIVE)",
+    rhythm: "⚡ BEAT DASH",
+    swarm: "👾 CYBER SWARM",
+    snake: "🐉 CYBER DRAGON",
+    flappy: "🦅 FLAPPY EAGLE",
     memory: "🧠 MEMORY MATRIX"
   };
   activeGameTitle.innerText = titles[gameName] || "PLAYING";
 
   if (gameName === 'brawl') {
-    // Mode Fullscreen untuk CyberBrawl
     viewportContainer.className = "fullscreen-mode";
     brawlHud.classList.remove("hidden");
     arcadeHudPanel.style.display = "none";
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
   } else {
-    // Mode Arcade Vertikal untuk game klasik
     viewportContainer.className = "arcade-mode";
     brawlHud.classList.add("hidden");
     arcadeHudPanel.style.display = "block";
@@ -194,8 +188,12 @@ function mainLoop(now) {
       ctx.translate(rx, ry);
     }
 
-    scenes[currentSceneName].update(dt);
-    scenes[currentSceneName].render(ctx);
+    try {
+      scenes[currentSceneName].update(dt);
+      scenes[currentSceneName].render(ctx);
+    } catch (err) {
+      console.error("Runtime error di scene:", currentSceneName, err);
+    }
 
     FX.update(dt);
     FX.render(ctx);
@@ -205,7 +203,7 @@ function mainLoop(now) {
   requestAnimationFrame(mainLoop);
 }
 
-// --- GLOBAL EVENT LISTENERS (TAMBAHKAN KEYUP AGAR BISA GERAK) ---
+// --- GLOBAL EVENT LISTENERS ---
 window.addEventListener("keydown", (e) => {
   AudioEngine.init();
   if (e.code === "Escape") {
@@ -217,43 +215,45 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
-// WAJIB ADA: Mengembalikan status tombol saat dilepas
 window.addEventListener("keyup", (e) => {
   if (currentSceneName && scenes[currentSceneName]?.onKeyUp) {
     scenes[currentSceneName].onKeyUp(e);
   }
 });
 
-function handleCanvasPointer(clientX, clientY) {
-  AudioEngine.init();
-  if (!currentSceneName || !scenes[currentSceneName]) return;
+// Hilangkan menu klik kanan browser khusus di area game
+window.addEventListener("contextmenu", (e) => {
+  if (currentSceneName === 'brawl') {
+    e.preventDefault();
+  }
+});
+
+function getCanvasCoords(clientX, clientY) {
   const rect = canvas.getBoundingClientRect();
   const scaleX = canvas.width / rect.width;
   const scaleY = canvas.height / rect.height;
-  const x = (clientX - rect.left) * scaleX;
-  const y = (clientY - rect.top) * scaleY;
-
-  if (scenes[currentSceneName]?.onPointerDown) {
-    scenes[currentSceneName].onPointerDown(x, y);
-  }
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top) * scaleY
+  };
 }
 
-canvas.addEventListener("mousedown", (e) => handleCanvasPointer(e.clientX, e.clientY));
-canvas.addEventListener("touchstart", (e) => {
-  if (e.touches.length > 0) handleCanvasPointer(e.touches[0].clientX, e.touches[0].clientY);
-  e.preventDefault();
-}, { passive: false });
+canvas.addEventListener("mousedown", (e) => {
+  AudioEngine.init();
+  if (!currentSceneName || !scenes[currentSceneName]) return;
+  const pos = getCanvasCoords(e.clientX, e.clientY);
+  if (scenes[currentSceneName].onMouseDown) {
+    scenes[currentSceneName].onMouseDown(e.button, pos.x, pos.y);
+  } else if (scenes[currentSceneName].onPointerDown) {
+    scenes[currentSceneName].onPointerDown(pos.x, pos.y);
+  }
+});
 
 canvas.addEventListener("mousemove", (e) => {
   if (!currentSceneName || !scenes[currentSceneName]) return;
-  const rect = canvas.getBoundingClientRect();
-  const scaleX = canvas.width / rect.width;
-  const scaleY = canvas.height / rect.height;
-  const mouseX = (e.clientX - rect.left) * scaleX;
-  const mouseY = (e.clientY - rect.top) * scaleY;
-
+  const pos = getCanvasCoords(e.clientX, e.clientY);
   if (scenes[currentSceneName].onMouseMove) {
-    scenes[currentSceneName].onMouseMove(mouseX, mouseY);
+    scenes[currentSceneName].onMouseMove(pos.x, pos.y);
   }
 });
 
