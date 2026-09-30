@@ -3,111 +3,283 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>NEON PULSE // Gaming Platform</title>
+  <title>NEON PULSE OS // Cyber Tactical Gaming Portal</title>
 
-  <!-- Typography -->
+  <!-- Google Sci-Fi Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600;800;900&family=Rajdhani:wght@600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-  <!-- Ambient Background Glow -->
+  <!-- Ambient Dynamic Lighting -->
   <div class="ambient-glow bg-cyan"></div>
   <div class="ambient-glow bg-magenta"></div>
+  <div class="scanlines-overlay"></div>
 
-  <!-- ==================================================== -->
-  <!-- 🏠 1. BERANDA / LOBBY PORTAL (Katalog Game)          -->
-  <!-- ==================================================== -->
-  <div id="lobbyScreen" class="active">
-    <header class="lobby-header">
-      <div class="badge-status"><span class="live-dot"></span> NEON PLATFORM OS v3.0</div>
-      <h1 class="portal-title">NEON PULSE</h1>
-      <p class="portal-subtitle">OFFLINE GAMING HUB // CHOOSE YOUR PROTOCOL</p>
-    </header>
+  <!-- ========================================================= -->
+  <!-- 🌐 TOP SYSTEM COMMAND BAR (Live Clock, Status & Profile)  -->
+  <!-- ========================================================= -->
+  <header class="os-top-bar">
+    <div class="brand-zone">
+      <div class="brand-hex">▲</div>
+      <div>
+        <div class="brand-title">NEON PULSE <span class="os-version">v4.0.2</span></div>
+        <div class="brand-status"><span class="pulse-dot"></span> MAINFRAME ONLINE // 60 FPS</div>
+      </div>
+    </div>
 
-    <div class="game-catalog">
-      <!-- Card 1: CyberBrawl 2D (FLAGSHIP BATTLEGROUND) -->
-      <div class="game-card featured" onclick="launchGame('brawl')">
-        <div class="card-badge">🔥 FLAGSHIP MOBA</div>
-        <div class="card-icon">⚔️</div>
-        <h3 class="card-title">CYBERBRAWL 2D</h3>
-        <p class="card-desc">10-Player Offline Battleground. Jelajahi arena 2400x2400, loot peti data, stealth bush, dan bertahan dari Firewall Ring.</p>
-        <div class="card-tags">
-          <span>SURVIVAL</span><span>MOBA</span><span>AI BOTS</span>
+    <!-- Live Tactical HUD Clock -->
+    <div class="system-clock-card">
+      <span class="clock-label">SYS_TIME:</span>
+      <span id="hudClock" class="clock-value">00:00:00 WIB</span>
+    </div>
+
+    <!-- Operator Profile Badge -->
+    <div class="operator-profile">
+      <div class="avatar-ring">
+        <div class="avatar-img">⚡</div>
+      </div>
+      <div class="profile-info">
+        <div class="operator-id">OPERATOR-77 <span class="rank-tag">ELITE</span></div>
+        <div class="xp-mini-track">
+          <div class="xp-mini-bar" style="width: 72%;"></div>
         </div>
-        <button class="btn-play">MAINKAN SEKARANG</button>
+      </div>
+      <button id="btnAudioToggle" class="btn-tool" title="Toggle Sound Engine">🔊</button>
+    </div>
+  </header>
+
+  <!-- ========================================================= -->
+  <!-- 🏠 1. LOBBY PORTAL / KATALOG GAME BERIKLAN DAN BER-FILTER -->
+  <!-- ========================================================= -->
+  <main id="lobbyScreen" class="active">
+    
+    <!-- Hero Banner (Flagship Showcase) -->
+    <section class="portal-hero">
+      <div class="hero-content">
+        <span class="badge-featured">🔥 FLAGSHIP PROTOCOL</span>
+        <h1 class="hero-title">CYBERBRAWL 2D</h1>
+        <p class="hero-desc">
+          Operasi tempur taktis 2.5D. Rekrut regu Spec-Ops AI, ganti 3 modul senjata (Carbine, Shotgun, Railgun), tangkis proyektil musuh menggunakan Katana Energy, dan taklukkan zona pertempuran tanpa batas.
+        </p>
+        <div class="hero-actions">
+          <button class="btn-hero-primary" onclick="launchGame('brawl')">
+            <span class="btn-icon">⚡</span> DEPLOY SEKARANG
+          </button>
+          <button class="btn-hero-secondary" onclick="openGameModal('brawl')">
+            <span class="btn-icon">📋</span> TACTICAL INTEL
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Toolbar: Filter Kategori & Search Input -->
+    <section class="portal-toolbar">
+      <div class="filter-tabs" role="tablist">
+        <button class="tab-btn active" data-filter="all">SEMUA PROTOKOL (6)</button>
+        <button class="tab-btn" data-filter="combat">TACTICAL & ACTION</button>
+        <button class="tab-btn" data-filter="rhythm">MUSIC & RHYTHM</button>
+        <button class="tab-btn" data-filter="arcade">RETRO ARCADE</button>
+      </div>
+
+      <div class="search-box">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="gameSearchInput" placeholder="Cari protokol game..." autocomplete="off">
+        <span class="search-clear" id="searchClearBtn">&times;</span>
+      </div>
+    </section>
+
+    <!-- 3D Interactive Card Grid -->
+    <section class="catalog-grid" id="catalogGrid">
+      
+      <!-- Card 1: CyberBrawl -->
+      <div class="card-3d-wrapper" data-category="combat" data-title="cyberbrawl 2d tactical moba battleground">
+        <div class="card-3d" onclick="launchGame('brawl')">
+          <div class="card-glare"></div>
+          <div class="card-header">
+            <span class="cat-pill combat">COMBAT</span>
+            <span class="fps-pill">FULLSCREEN 2.5D</span>
+          </div>
+          <div class="card-hero-icon">⚔️</div>
+          <h3 class="card-title">CYBERBRAWL 2D</h3>
+          <p class="card-summary">Tactical Spec-Ops Squad, Arsenal 3 Senjata, Bullet Deflect Katana, & 2.5D Extruded Shadow.</p>
+          <div class="card-tags">
+            <span>SQUAD AI</span><span>PARRY</span><span>ARSENAL</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn-card-intel" onclick="event.stopPropagation(); openGameModal('brawl')">INTEL</button>
+            <button class="btn-card-deploy">DEPLOY ➔</button>
+          </div>
+        </div>
       </div>
 
       <!-- Card 2: Beat Dash -->
-      <div class="game-card" onclick="launchGame('rhythm')">
-        <div class="card-badge">RHYTHM</div>
-        <div class="card-icon">⚡</div>
-        <h3 class="card-title">BEAT DASH</h3>
-        <p class="card-desc">Pseudo-3D Highway. Ikuti alunan tempo 128 BPM Synthwave dan tekan tombol nada secara presisi.</p>
-        <div class="card-tags"><span>MUSIC</span><span>3D TRACK</span></div>
-        <button class="btn-play">LAUNCH</button>
+      <div class="card-3d-wrapper" data-category="rhythm" data-title="beat dash rhythm synthwave highway">
+        <div class="card-3d" onclick="launchGame('rhythm')">
+          <div class="card-glare"></div>
+          <div class="card-header">
+            <span class="cat-pill rhythm">RHYTHM</span>
+            <span class="fps-pill">128 BPM</span>
+          </div>
+          <div class="card-hero-icon">⚡</div>
+          <h3 class="card-title">BEAT DASH</h3>
+          <p class="card-summary">Pseudo-3D Highway. Ketukan terkalibrasi Synthwave tempo cepat dengan akurasi PERFECT & GREAT.</p>
+          <div class="card-tags">
+            <span>SYNTHWAVE</span><span>PSEUDO-3D</span><span>COMBO</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn-card-intel" onclick="event.stopPropagation(); openGameModal('rhythm')">INTEL</button>
+            <button class="btn-card-deploy">LAUNCH ➔</button>
+          </div>
+        </div>
       </div>
 
       <!-- Card 3: Cyber Swarm -->
-      <div class="game-card" onclick="launchGame('swarm')">
-        <div class="card-badge">ACTION</div>
-        <div class="card-icon">👾</div>
-        <h3 class="card-title">CYBER SWARM</h3>
-        <p class="card-desc">Arena Survivor. Kendalikan drone penembak plasma otomatis dan musnahkan gelombang antivirus.</p>
-        <div class="card-tags"><span>SURVIVOR</span><span>TWIN-STICK</span></div>
-        <button class="btn-play">LAUNCH</button>
+      <div class="card-3d-wrapper" data-category="combat" data-title="cyber swarm arena survivor twin stick">
+        <div class="card-3d" onclick="launchGame('swarm')">
+          <div class="card-glare"></div>
+          <div class="card-header">
+            <span class="cat-pill combat">ACTION</span>
+            <span class="fps-pill">WAVE DEFENSE</span>
+          </div>
+          <div class="card-hero-icon">👾</div>
+          <h3 class="card-title">CYBER SWARM</h3>
+          <p class="card-summary">Twin-stick auto targeting. Kawanan drone berotasi menembakkan plasma dan menghalau invasi virus.</p>
+          <div class="card-tags">
+            <span>AUTO-AIM</span><span>SURVIVOR</span><span>NOVA EMP</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn-card-intel" onclick="event.stopPropagation(); openGameModal('swarm')">INTEL</button>
+            <button class="btn-card-deploy">LAUNCH ➔</button>
+          </div>
+        </div>
       </div>
 
       <!-- Card 4: Cyber Dragon -->
-      <div class="game-card" onclick="launchGame('snake')">
-        <div class="card-badge">CLASSIC</div>
-        <div class="card-icon">🐉</div>
-        <h3 class="card-title">CYBER DRAGON</h3>
-        <p class="card-desc">Snake berevolusi hingga 8 wujud naga bertanduk emas, slow-motion bullet time, dan antrean input anti-lag.</p>
-        <div class="card-tags"><span>EVOLUTION</span><span>ARCADE</span></div>
-        <button class="btn-play">LAUNCH</button>
+      <div class="card-3d-wrapper" data-category="arcade" data-title="cyber dragon snake evolution bullet time">
+        <div class="card-3d" onclick="launchGame('snake')">
+          <div class="card-glare"></div>
+          <div class="card-header">
+            <span class="cat-pill arcade">CLASSIC</span>
+            <span class="fps-pill">8 EVOLUTIONS</span>
+          </div>
+          <div class="card-hero-icon">🐉</div>
+          <h3 class="card-title">CYBER DRAGON</h3>
+          <p class="card-summary">Evolusi naga bertanduk emas 8 tingkat, slow-mo bullet time taktis, dan antrean input anti-lag.</p>
+          <div class="card-tags">
+            <span>BULLET TIME</span><span>EVOLUTION</span><span>INPUT QUEUE</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn-card-intel" onclick="event.stopPropagation(); openGameModal('snake')">INTEL</button>
+            <button class="btn-card-deploy">LAUNCH ➔</button>
+          </div>
+        </div>
       </div>
 
       <!-- Card 5: Flappy Eagle -->
-      <div class="game-card" onclick="launchGame('flappy')">
-        <div class="card-badge">ARCADE</div>
-        <div class="card-icon">🦅</div>
-        <h3 class="card-title">FLAPPY EAGLE</h3>
-        <p class="card-desc">Endless Flyer dengan transisi Warp Drive tiap kelipatan 500 skor dan bonus mekanik menyerempet (Graze).</p>
-        <div class="card-tags"><span>ENDLESS</span><span>REFLEX</span></div>
-        <button class="btn-play">LAUNCH</button>
+      <div class="card-3d-wrapper" data-category="arcade" data-title="flappy eagle warp drive graze">
+        <div class="card-3d" onclick="launchGame('flappy')">
+          <div class="card-glare"></div>
+          <div class="card-header">
+            <span class="cat-pill arcade">ARCADE</span>
+            <span class="fps-pill">WARP SPEED</span>
+          </div>
+          <div class="card-hero-icon">🦅</div>
+          <h3 class="card-title">FLAPPY EAGLE</h3>
+          <p class="card-summary">Endless flyer dengan lompatan Warp Drive di skor 500 dan bonus graze menyerempet rintangan.</p>
+          <div class="card-tags">
+            <span>GRAZE BONUS</span><span>SHIELD</span><span>WARP DRIVE</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn-card-intel" onclick="event.stopPropagation(); openGameModal('flappy')">INTEL</button>
+            <button class="btn-card-deploy">LAUNCH ➔</button>
+          </div>
+        </div>
       </div>
 
       <!-- Card 6: Memory Matrix -->
-      <div class="game-card" onclick="launchGame('memory')">
-        <div class="card-badge">BRAIN</div>
-        <div class="card-icon">🧠</div>
-        <h3 class="card-title">MEMORY MATRIX</h3>
-        <p class="card-desc">Asah fokus memori spasial dengan ekspansi ukuran grid dinamis dari 3x3 hingga 6x6.</p>
-        <div class="card-tags"><span>PUZZLE</span><span>FOCUS</span></div>
-        <button class="btn-play">LAUNCH</button>
+      <div class="card-3d-wrapper" data-category="arcade" data-title="memory matrix cognitive puzzle grid">
+        <div class="card-3d" onclick="launchGame('memory')">
+          <div class="card-glare"></div>
+          <div class="card-header">
+            <span class="cat-pill arcade">PUZZLE</span>
+            <span class="fps-pill">ADAPTIVE GRID</span>
+          </div>
+          <div class="card-hero-icon">🧠</div>
+          <h3 class="card-title">MEMORY MATRIX</h3>
+          <p class="card-summary">Tes refleks memori spasial dengan ekspansi ubin dinamis membesar dari 3x3 hingga 6x6.</p>
+          <div class="card-tags">
+            <span>COGNITIVE</span><span>EXPANDING</span><span>REFLEX</span>
+          </div>
+          <div class="card-actions">
+            <button class="btn-card-intel" onclick="event.stopPropagation(); openGameModal('memory')">INTEL</button>
+            <button class="btn-card-deploy">LAUNCH ➔</button>
+          </div>
+        </div>
+      </div>
+
+    </section>
+  </main>
+
+  <!-- ========================================================= -->
+  <!-- 📋 TACTICAL INTEL MODAL (Drawer Detail Game)             -->
+  <!-- ========================================================= -->
+  <div id="gameModal" class="modal-backdrop">
+    <div class="modal-window">
+      <div class="modal-header">
+        <div class="modal-badge" id="modalBadge">CLASSIFIED PROTOCOL</div>
+        <button class="modal-close" onclick="closeGameModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="modal-icon" id="modalIcon">⚔️</div>
+        <h2 class="modal-title" id="modalTitle">GAME TITLE</h2>
+        <p class="modal-desc" id="modalDesc">Detailed description will appear here.</p>
+        
+        <div class="modal-spec-grid">
+          <div class="spec-card">
+            <span class="spec-label">HIGH SCORE</span>
+            <span class="spec-value highlight" id="modalHighScore">0 PTS</span>
+          </div>
+          <div class="spec-card">
+            <span class="spec-label">INPUT DEVICE</span>
+            <span class="spec-value" id="modalControls">KEYBOARD + MOUSE</span>
+          </div>
+          <div class="spec-card">
+            <span class="spec-label">RENDER ENGINE</span>
+            <span class="spec-value" id="modalEngine">CANVAS 2D 60FPS</span>
+          </div>
+        </div>
+
+        <div class="modal-controls-guide" id="modalGuide">
+          <!-- Panduan tombol akan diinjeksi via JS -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-modal-cancel" onclick="closeGameModal()">BATAL</button>
+        <button class="btn-modal-deploy" id="modalDeployBtn">LUNCURKAN PROTOKOL ➔</button>
       </div>
     </div>
   </div>
 
-  <!-- ==================================================== -->
-  <!-- 🕹️ 2. LAYAR GAME CONTAINER (Tempat Game Berjalan)     -->
-  <!-- ==================================================== -->
+  <!-- ========================================================= -->
+  <!-- 🕹️ 2. LAYAR GAME SCREEN CONTAINER                        -->
+  <!-- ========================================================= -->
   <div id="gameScreen">
-    <!-- Top Universal Bar -->
     <div class="platform-bar">
-      <button class="btn-back" onclick="exitToLobby()">🏠 KEMBALI KE LOBBY (ESC)</button>
-      <div id="activeGameTitle" class="active-game-title">PLAYING</div>
-      <div class="engine-badge">60 FPS // SYNTH AUDIO</div>
+      <button class="btn-back" onclick="exitToLobby()">
+        <span class="key-badge">ESC</span> 🏠 KEMBALI KE LOBBY
+      </button>
+      <div id="activeGameTitle" class="active-game-title">CYBERBRAWL 2D</div>
+      <div class="engine-badge">PROCEDURAL SYNTH // 60 FPS DETERMINISTIC</div>
     </div>
 
-    <!-- Viewport Container -->
     <div id="viewportContainer" class="arcade-mode">
       <canvas id="gameCanvas" width="720" height="1080"></canvas>
 
-      <!-- HUD Spesifik Khusus CyberBrawl 2D -->
+      <!-- HUD Spesifik CyberBrawl 2D -->
       <div id="brawlHud" class="brawl-hud hidden">
         <div class="brawl-card player-stats">
           <div class="player-header">
@@ -116,38 +288,36 @@
           </div>
           <div class="bar-container hp-bar-bg">
             <div class="bar-fill hp-bar-fill" id="brawlHpBar"></div>
-            <span class="bar-text" id="brawlHpText">100 / 100</span>
+            <span class="bar-text" id="brawlHpText">180 / 180</span>
           </div>
         </div>
 
         <div class="brawl-top-right">
           <div class="brawl-card match-info">
-            <span>OPERATORS: <b id="brawlAlive">10</b></span>
+            <span>HOSTILES: <b id="brawlAlive">0</b></span>
             <span>KILLS: <b id="brawlKills">0</b></span>
-          </div>
-          <div class="minimap-wrapper">
-            <canvas id="minimapCanvas" width="140" height="140"></canvas>
           </div>
         </div>
 
-        <div class="brawl-skills">
-          <div class="skill-slot">
-            <span class="skill-key">SPACE</span>
-            <span class="skill-icon">⚡</span>
-            <span class="skill-name">BLINK</span>
+        <div class="brawl-weapons-deck">
+          <div class="wep-card active" id="wepSlot0">
+            <span class="wep-key">1</span>
+            <span class="wep-name">M4-CARBINE</span>
           </div>
-          <div class="skill-slot">
-            <span class="skill-key">E / R-CLICK</span>
-            <span class="skill-icon">🌀</span>
-            <span class="skill-name">NOVA</span>
+          <div class="wep-card" id="wepSlot1">
+            <span class="wep-key">2</span>
+            <span class="wep-name">SHOTGUN</span>
+          </div>
+          <div class="wep-card" id="wepSlot2">
+            <span class="wep-key">3</span>
+            <span class="wep-name">RAILGUN</span>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- HUD Instruksi Bawah untuk Game Arcade -->
     <footer class="hud-panel" id="arcadeHudPanel">
-      <div class="hud-content" id="gameInfo">Gunakan keyboard/sentuhan layar untuk bermain.</div>
+      <div class="hud-content" id="gameInfo">Gunakan keyboard atau sentuh layar untuk bermain.</div>
     </footer>
   </div>
 
