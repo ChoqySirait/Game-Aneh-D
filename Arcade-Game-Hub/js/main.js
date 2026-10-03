@@ -1,5 +1,5 @@
 // =================================================================
-// 🚀 NEON PULSE PLATFORM CORE ENGINE & ROUTER (v4.5 INTEL & GUIDES)
+// 🚀 NEON PULSE PLATFORM CORE ENGINE & ROUTER (v4.6 JUICE & BGM)
 // =================================================================
 
 const canvas = document.getElementById("gameCanvas");
@@ -16,10 +16,13 @@ let currentSceneName = null;
 const scenes = {};
 let audioMuted = false;
 
-// --- AUDIO SYNTHESIZER ---
+// --- PROCEDURAL AUDIO & BGM SYNTHESIZER ---
 const AudioEngine = {
   ctx: null,
   pentatonicScale: [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33],
+  bgmInterval: null,
+  bgmStep: 0,
+
   init() {
     if (!this.ctx) {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -27,6 +30,39 @@ const AudioEngine = {
     }
     if (this.ctx.state === 'suspended') this.ctx.resume();
   },
+
+  // Generator Musik Synthwave 128 BPM Prosedural (Murni Web Audio API, 0 KB File)
+  startBGM() {
+    this.init();
+    if (this.bgmInterval) return;
+
+    // Bassline Synthwave (Progresi E minor: E2, G2, A2, B2)
+    const bassline = [82.41, 82.41, 98.00, 82.41, 110.00, 82.41, 123.47, 98.00];
+    this.bgmStep = 0;
+
+    // 128 BPM (1/8 note = ~234ms)
+    this.bgmInterval = setInterval(() => {
+      if (audioMuted || !this.ctx || this.ctx.state !== 'running') return;
+
+      const note = bassline[this.bgmStep % bassline.length];
+      // Synth Bass Pump
+      this.playTone(note, 'sawtooth', 0.12, 0.035);
+
+      // Kick Drum Synthesizer di setiap ketukan ganjil
+      if (this.bgmStep % 2 === 0) {
+        this.playTone(55, 'sine', 0.09, 0.07);
+      }
+      this.bgmStep++;
+    }, 234);
+  },
+
+  stopBGM() {
+    if (this.bgmInterval) {
+      clearInterval(this.bgmInterval);
+      this.bgmInterval = null;
+    }
+  },
+
   playTone(freq, type = 'sine', duration = 0.1, gainVal = 0.15) {
     if (audioMuted || !this.ctx) return;
     const now = this.ctx.currentTime;
@@ -41,10 +77,12 @@ const AudioEngine = {
     osc.start(now);
     osc.stop(now + duration);
   },
+
   playArpeggio(step = 0) {
     const note = this.pentatonicScale[step % this.pentatonicScale.length];
     this.playTone(note, 'triangle', 0.12, 0.15);
   },
+
   play(type) {
     if (audioMuted || !this.ctx) return;
     const now = this.ctx.currentTime;
@@ -130,30 +168,28 @@ function registerScene(name, sceneObj) {
   scenes[name] = sceneObj;
 }
 
-// =================================================================
-// 📖 DATABASE BUKU PANDUAN LENGKAP (6 GAME DETAIL CARA MAIN)
-// =================================================================
+// --- DATABASE PANDUAN GAME & MODAL ---
 const gameData = {
   brawl: {
     title: "CYBERBRAWL 2D: WARZONE",
     icon: "⚔️",
     badge: "OPERASI MILITER TAKTIKAL",
     difficulty: "TINGKAT KESULITAN: ⭐⭐⭐⭐☆ (MENANTANG)",
-    desc: "Misi Anda adalah memimpin operasi pembersihan markas musuh. Bergerak di medan perang 2.5D, selamatkan rekan tim dari Kapsul Cryo, ganti senjata sesuai jarak musuh, dan gunakan pedang Katana untuk memantulkan proyektil lawan kembali ke arah mereka.",
+    desc: "Misi pembersihan sektor 2.5D. Selamatkan regu Spec-Ops AI dari Kapsul Cryo, ganti 3 modul senjata secara instan, dan gunakan pedang Katana untuk memantulkan peluru musuh!",
     controls: "KEYBOARD + MOUSE (DUAL-STICK)",
-    engine: "2.5D SHADOW + TACTICAL FLASHLIGHT",
+    engine: "2.5D EXTRUDED SHADOW + LASER SIGHT",
     controlsList: [
-      { key: "W - A - S - D", desc: "Berlari navigasi ke 8 arah di medan tempur" },
-      { key: "KURSOR MOUSE", desc: "Mengarahkan sorot lampu senter & bidikan laser senjata" },
-      { key: "KLIK KIRI", desc: "Menembakkan senjata aktif (recoil & akurasi tinggi)" },
-      { key: "KLIK KANAN", desc: "Tebasan Katana (memotong musuh & memantulkan peluru)" },
-      { key: "ANGKA 1, 2, 3 / Q", desc: "Ganti senjata: 1=M4 Karbin, 2=Shotgun, 3=Railgun Sniper" },
-      { key: "SPASI", desc: "Tactical Dash (melesat cepat & menabrak musuh)" }
+      { key: "W - A - S - D", desc: "Berlari navigasi 8-arah taktis" },
+      { key: "KURSOR MOUSE", desc: "Mengarahkan laser sight & senter taktis" },
+      { key: "KLIK KIRI", desc: "Menembak senjata aktif (Recoil & damage floating)" },
+      { key: "KLIK KANAN", desc: "Tebasan Katana (Memantulkan peluru musuh)" },
+      { key: "ANGKA 1, 2, 3 / Q", desc: "Ganti senjata: 1=M4 Karbin, 2=Shotgun, 3=Railgun" },
+      { key: "SPASI", desc: "Tactical Dash (Melesat cepat menembus rintangan)" }
     ],
     tips: [
       "Dekati Kapsul RESCUE bertuliskan hijau untuk merekrut teman AI Medic & Gunner.",
-      "Tembak Tong Merah saat musuh berkerumun untuk ledakan berantai, atau Tong Biru untuk membekukan mereka.",
-      "Gunakan Klik Kanan tepat saat peluru musuh mendekat untuk memantulkannya kembali!"
+      "Tembak Tong Merah untuk ledakan berantai, atau Tong Biru untuk membekukan sekelompok musuh.",
+      "Gunakan Klik Kanan saat peluru musuh mendekat untuk memantulkannya kembali!"
     ],
     scoreKey: "brawl_high_kills"
   },
@@ -162,21 +198,17 @@ const gameData = {
     icon: "⚡",
     badge: "MUSIK & REFLEKS TEMPO",
     difficulty: "TINGKAT KESULITAN: ⭐⭐⭐☆☆ (SEDANG)",
-    desc: "Meluncur di jalan tol siber 3D berkecepatan tinggi! Ketuk tombol jalur tepat saat balok nada menyentuh garis eksekusi di bagian bawah untuk menghasilkan harmoni musik synthesizer yang memukau.",
-    controls: "TOMBOL D - F - J - K / SENTUH JALUR",
+    desc: "Meluncur di jalan tol siber 3D! Ketuk not tepat saat menyentuh garis bawah untuk harmoni synthesizer yang dinamis.",
+    controls: "D - F - J - K / SENTUH JALUR",
     engine: "PERSPEKTIF 3D SYNTHWAVE (128 BPM)",
     controlsList: [
-      { key: "TOMBOL D", desc: "Ketuk jalur 1 (Warna Cyan / Biru Muda)" },
-      { key: "TOMBOL F", desc: "Ketuk jalur 2 (Warna Pink / Magenta)" },
-      { key: "TOMBOL J", desc: "Ketuk jalur 3 (Warna Kuning / Amber)" },
-      { key: "TOMBOL K", desc: "Ketuk jalur 4 (Warna Hijau Neon)" },
-      { key: "LAYAR SENTUH", desc: "Sentuh langsung salah satu dari 4 kotak tombol di bagian bawah" },
-      { key: "SPASI", desc: "Memulai lagu atau restart setelah permainan selesai" }
+      { key: "D - F - J - K", desc: "Ketuk 4 jalur nada sesuai warna" },
+      { key: "LAYAR SENTUH", desc: "Sentuh langsung jalur di bawah layar" },
+      { key: "SPASI", desc: "Memulai atau restart lagu" }
     ],
     tips: [
-      "Setiap 6 kali kombo berturut-turut akan melipatgandakan multiplier skor hingga 5x lipat!",
-      "Jika sering miss (terlewat), bar darah hijau di atas akan berkurang drastis.",
-      "Fokuskan pandangan Anda tepat pada garis putih bercahaya di bawah lintasan."
+      "Kombo beruntun melipatgandakan multiplier skor hingga 5x!",
+      "Fokuskan pandangan Anda tepat pada garis putih bawah lintasan."
     ],
     scoreKey: "rhythm_high_score"
   },
@@ -185,92 +217,69 @@ const gameData = {
     icon: "👾",
     badge: "AKSI BERTAHAN HIDUP",
     difficulty: "TINGKAT KESULITAN: ⭐⭐⭐☆☆ (SEDANG)",
-    desc: "Karakter Anda adalah inti energi virus siber yang dikelilingi kawanan nano-drone pertahanan. Hindari kepungan antivirus dan hancurkan musuh dengan tembakan laser otomatis.",
+    desc: "Inti energi virus siber dikelilingi kawanan nano-drone pertahanan. Hindari kepungan antivirus dan hancurkan mereka dengan tembakan otomatis.",
     controls: "KURSOR MOUSE / GESER LAYAR",
-    engine: "FISIKA VEKTOR BIDIK OTOMATIS",
+    engine: "AUTO-AIM VECTOR PHYSICS",
     controlsList: [
-      { key: "GERAKAN MOUSE", desc: "Inti drone akan mengikuti posisi kursor secara halus" },
-      { key: "SENTUH LAYAR", desc: "Geser jari di layar ponsel untuk mengarahkan posisi drone" },
-      { key: "SPASI / KLIK", desc: "Melepaskan Nova Burst EMP (gelombang kejut penghancur layar)" }
+      { key: "MOUSE / SENTUH", desc: "Arahkan pergerakan inti drone" },
+      { key: "SPASI / KLIK", desc: "Melepaskan Nova Burst EMP (gelombang kejut)" }
     ],
     tips: [
-      "Nano-drone akan menembak musuh terdekat secara otomatis tanpa perlu Anda klik.",
-      "Kumpulkan Data Orb kuning yang dijatuhkan musuh untuk menambah jumlah drone pelindung Anda.",
-      "Simpan gelombang Nova EMP untuk situasi genting saat musuh mengepung dari segala arah!"
+      "Kumpulkan Data Orb kuning untuk menambah jumlah drone pelindung.",
+      "Gunakan Nova EMP saat musuh mengepung rapat!"
     ],
     scoreKey: "swarm_high_score"
   },
   snake: {
     title: "CYBER DRAGON // EVOLUTION",
     icon: "🐉",
-    badge: "KLASIK DENGAN SENTUHAN MODERN",
+    badge: "KLASIK REVOLUSI",
     difficulty: "TINGKAT KESULITAN: ⭐⭐☆☆☆ (SANTAI)",
-    desc: "Revolusi game Snake klasik legendaris! Kendalikan ular siber yang memakan data core bercahaya untuk berevolusi melalui 8 tingkatan wujud mitologi naga bertanduk emas.",
-    controls: "TOMBOL WASD / PANAH KEYBOARD",
+    desc: "Ular siber yang berevolusi melalui 8 tingkatan naga bertanduk emas dengan fitur Slow-Motion Bullet Time.",
+    controls: "WASD / PANAH KEYBOARD",
     engine: "INPUT QUEUE ANTI-LAG",
     controlsList: [
-      { key: "W / PANAH ATAS", desc: "Belok ke arah atas" },
-      { key: "S / PANAH BAWAH", desc: "Belok ke arah bawah" },
-      { key: "A / PANAH KIRI", desc: "Belok ke arah kiri" },
-      { key: "D / PANAH KANAN", desc: "Belok ke arah kanan" },
-      { key: "TOMBOL B", desc: "Mengaktifkan Bullet Time (gerak lambat untuk tikungan sulit)" },
-      { key: "SPASI", desc: "Mulai permainan / restart" }
+      { key: "WASD / PANAH", desc: "Navigasi arah kemudi" },
+      { key: "TOMBOL B", desc: "Bullet Time (Gerak lambat)" }
     ],
-    tips: [
-      "Game ini menggunakan sistem antrean input (*input buffer*), sehingga Anda bisa menekan tombol belok ganda tanpa khawatir menabrak diri sendiri.",
-      "Gunakan tombol B (Slow-Mo) saat ekor naga sudah sangat panjang dan ruang gerak menyempit."
-    ],
+    tips: ["Gunakan tombol B saat tubuh naga sudah sangat panjang untuk belokan sempit."],
     scoreKey: "snake_high_score"
   },
   flappy: {
     title: "FLAPPY EAGLE // WARP DRIVE",
     icon: "🦅",
-    badge: "REFLEKS TERBANG TANPA BATAS",
+    badge: "REFLEKS TERBANG",
     difficulty: "TINGKAT KESULITAN: ⭐⭐⭐⭐☆ (REFLEKS TINGGI)",
-    desc: "Kepakkan sayap elang siber Anda melewati celah pilar-pilar energi neon. Semakin lama Anda bertahan, kecepatan gravitasi akan semakin menantang refleks Anda!",
-    controls: "SPASI / KLIK MOUSE / SENTUH LAYAR",
+    desc: "Terbangkan elang siber melewati pilar energi neon dengan akselerasi Warp Drive di skor 500.",
+    controls: "SPASI / KLIK / SENTUH",
     engine: "DYNAMIC BIOME FLYER",
     controlsList: [
-      { key: "SPASI / KLIK", desc: "Mengepakkan sayap untuk melompat ke atas" },
-      { key: "TOMBOL SHIFT", desc: "Mengaktifkan Energy Shield darurat (menembus 1 pilar)" },
-      { key: "SENTUH LAYAR", desc: "Ketuk layar ponsel untuk melompat" }
+      { key: "SPASI / KLIK", desc: "Mengepakkan sayap lompat" },
+      { key: "TOMBOL SHIFT", desc: "Perisai darurat menembus 1 pilar" }
     ],
-    tips: [
-      "Mekanik GRAZE: Sengaja menyerempet pilar tipis-tipis tanpa menabrak akan memberi skor bonus ganda!",
-      "Saat mencapai skor 500, Anda akan melompat ke Warp Speed dengan perubahan warna latar bioma."
-    ],
+    tips: ["Menyerempet pipa tanpa menabrak (Graze) memberi skor ekstra ganda."],
     scoreKey: "flappy_high_score"
   },
   memory: {
     title: "MEMORY MATRIX // ASAH OTAK",
     icon: "🧠",
     badge: "UJI MEMORI SPASIAL",
-    difficulty: "TINGKAT KESULITAN: ⭐⭐⭐☆☆ (ASAH DAYA INGAT)",
-    desc: "Latih daya konsentrasi dan ketajaman memori Anda. Perhatikan baik-baik kotak ubin neon yang berkedip menyala selama 1 detik, lalu klik kembali ubin-ubin tersebut sebelum batas waktu habis!",
-    controls: "KLIK KIRI MOUSE / SENTUH UBIN",
-    engine: "MATRIKS GRID ADAPTIF (3x3 - 6x6)",
-    controlsList: [
-      { key: "KLIK / SENTUH", desc: "Memilih ubin neon yang tadi berkedip" },
-      { key: "SPASI", desc: "Memulai ronde atau mencoba kembali" }
-    ],
-    tips: [
-      "Papan grid akan membesar secara otomatis dari 3x3, 4x4, 5x5, hingga 6x6 seiring naiknya level Anda.",
-      "Durasi waktu hafalan akan semakin singkat di level tinggi; buat pola bentuk imajiner di pikiran Anda untuk mempermudah mengingat."
-    ],
+    difficulty: "TINGKAT KESULITAN: ⭐⭐⭐☆☆ (FOKUS)",
+    desc: "Hafalkan ubin neon yang berkedip kilat sebelum padam dan tebak urutannya di papan yang membesar dari 3x3 ke 6x6.",
+    controls: "KLIK KIRI / SENTUH",
+    engine: "MATRIKS GRID ADAPTIF",
+    controlsList: [{ key: "KLIK UBIN", desc: "Pilih ubin neon yang tadi menyala" }],
+    tips: ["Bentuk pola visual imajiner di pikiran Anda untuk mempermudah mengingat."],
     scoreKey: "memory_high_score"
   }
 };
 
-let activeModalKey = 'brawl';
-
-// Fungsi Pembuka Modal Panduan Lengkap
 function openGameModal(gameKey) {
   AudioEngine.init();
   AudioEngine.playTone(850, 'sine', 0.05, 0.1);
   const data = gameData[gameKey];
   if (!data) return;
 
-  activeModalKey = gameKey;
   document.getElementById("modalBadge").innerText = data.badge;
   document.getElementById("modalIcon").innerText = data.icon;
   document.getElementById("modalTitle").innerText = data.title;
@@ -282,7 +291,6 @@ function openGameModal(gameKey) {
   const savedScore = localStorage.getItem(data.scoreKey) || 0;
   document.getElementById("modalHighScore").innerText = savedScore + " POIN";
 
-  // Render Tabel Kontrol
   const tableContainer = document.getElementById("modalControlsTable");
   tableContainer.innerHTML = data.controlsList.map(item => `
     <div class="control-row">
@@ -291,13 +299,10 @@ function openGameModal(gameKey) {
     </div>
   `).join("");
 
-  // Render Tips
   const tipsContainer = document.getElementById("modalTipsBox");
   tipsContainer.innerHTML = `<ul>${data.tips.map(t => `<li>${t}</li>`).join("")}</ul>`;
 
-  // Tombol Main di Modal
   document.getElementById("modalDeployBtn").onclick = () => launchGame(gameKey);
-
   document.getElementById("gameModal").classList.add("active");
 }
 
@@ -306,7 +311,6 @@ function closeGameModal() {
   if (modal) modal.classList.remove("active");
 }
 
-// Fungsi Filter Kategori
 function filterCategory(category, buttonElement) {
   AudioEngine.init();
   AudioEngine.playTone(900, 'sine', 0.02, 0.05);
@@ -325,7 +329,6 @@ function filterCategory(category, buttonElement) {
   });
 }
 
-// Fungsi Pencarian Game
 function handleSearch(query) {
   const q = query.toLowerCase().trim();
   const clearBtn = document.getElementById("searchClearBtn");
@@ -350,7 +353,7 @@ function clearSearch() {
   }
 }
 
-// Peluncuran Game
+// --- PLATFORM LAUNCHER & ROUTER ---
 function launchGame(gameName) {
   AudioEngine.init();
   if (!scenes[gameName]) return;
@@ -364,7 +367,7 @@ function launchGame(gameName) {
   gameScreen.classList.add("active");
 
   const titles = {
-    brawl: "⚔️ CYBERBRAWL 2D (TACTICAL SPEC-OPS)",
+    brawl: "⚔️ CYBERBRAWL 2D (WARZONE OVERDRIVE)",
     rhythm: "⚡ BEAT DASH (RHYTHM HIGHWAY)",
     swarm: "👾 CYBER SWARM (ARENA SURVIVOR)",
     snake: "🐉 CYBER DRAGON (EVOLUTION)",
@@ -379,12 +382,15 @@ function launchGame(gameName) {
     arcadeHudPanel.style.display = "none";
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
+    // Mainkan BGM Synthwave Otomatis saat Deploy ke Warzone
+    AudioEngine.startBGM();
   } else {
     viewportContainer.className = "arcade-mode";
     brawlHud.classList.add("hidden");
     arcadeHudPanel.style.display = "block";
     canvas.width = 720;
     canvas.height = 1080;
+    AudioEngine.stopBGM();
   }
 
   scenes[gameName].init();
@@ -392,14 +398,13 @@ function launchGame(gameName) {
 }
 
 function exitToLobby() {
+  AudioEngine.stopBGM();
   currentSceneName = null;
   gameScreen.classList.remove("active");
   lobbyScreen.classList.add("active");
 }
 
-// Inisialisasi Jam & Efek 3D Card Hover Langsung
 function initializeLobbySystem() {
-  // Update Jam WIB Realtime
   setInterval(() => {
     const now = new Date();
     const clockEl = document.getElementById("hudClock");
@@ -408,7 +413,6 @@ function initializeLobbySystem() {
     }
   }, 1000);
 
-  // 3D Tilt Effect pada Kartu
   const cards = document.querySelectorAll(".card-3d-wrapper");
   cards.forEach(wrapper => {
     const card = wrapper.querySelector(".card-3d");
@@ -441,7 +445,6 @@ function initializeLobbySystem() {
   });
 }
 
-// Jalankan Inisialisasi Tanpa Menunggu
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeLobbySystem);
 } else {
