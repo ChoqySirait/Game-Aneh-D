@@ -1,12 +1,18 @@
+/* =================================================================
+   🔥 NEON PULSE OS v5.0 // COMPLETE CYBER ARCADE PLATFORM STYLING
+   ================================================================= */
+
 :root {
   --bg-deep: #02050e;
-  --bg-card: rgba(8, 14, 28, 0.75);
+  --bg-card: rgba(8, 14, 28, 0.8);
+  --bg-card-hover: rgba(14, 25, 50, 0.9);
   --neon-cyan: #00f2fe;
   --neon-cyan-glow: rgba(0, 242, 254, 0.35);
   --neon-magenta: #ff007f;
   --neon-green: #00ff66;
   --neon-amber: #ffea00;
   --border-glass: 1px solid rgba(0, 242, 254, 0.18);
+  --border-active: 1px solid rgba(0, 242, 254, 0.6);
   
   --font-title: 'Orbitron', monospace, sans-serif;
   --font-body: 'Rajdhani', sans-serif;
@@ -29,9 +35,18 @@ body, html {
   color: #ffffff;
   font-family: var(--font-body);
   overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: var(--neon-cyan) var(--bg-deep);
 }
 
-/* Ambient Backlight */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, var(--neon-cyan), var(--neon-magenta));
+  border-radius: 3px;
+}
+
+/* Ambient Lighting Background */
 .ambient-glow {
   position: fixed;
   width: 500px;
@@ -52,16 +67,18 @@ body, html {
   background-size: 100% 4px;
   pointer-events: none;
   z-index: 1;
-  opacity: 0.4;
+  opacity: 0.35;
 }
 
-/* Top System Bar */
+/* ========================================================= */
+/* 🌐 TOP COMMAND BAR (HUD HEADER)                           */
+/* ========================================================= */
 .os-top-bar {
   position: sticky;
   top: 0;
   width: 100%;
   height: 64px;
-  background: rgba(3, 7, 18, 0.9);
+  background: rgba(3, 7, 18, 0.92);
   border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   display: flex;
   justify-content: space-between;
@@ -100,11 +117,12 @@ body, html {
 .btn-tool { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; border-radius: 6px; padding: 6px 10px; cursor: pointer; transition: all 0.2s; }
 .btn-tool:hover { background: rgba(0, 242, 254, 0.2); border-color: var(--neon-cyan); }
 
-/* Lobby Screen */
+/* ========================================================= */
+/* 🏠 LOBBY SCREEN & HERO SHOWCASE                           */
+/* ========================================================= */
 #lobbyScreen { position: relative; z-index: 2; max-width: 1240px; margin: 0 auto; padding: 30px 24px 80px; display: none; }
 #lobbyScreen.active { display: block; }
 
-/* Hero Banner */
 .portal-hero {
   position: relative;
   background: linear-gradient(135deg, rgba(14, 25, 48, 0.85) 0%, rgba(4, 9, 20, 0.95) 100%);
@@ -237,9 +255,9 @@ body, html {
 .modal-backdrop {
   position: fixed;
   top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(0, 0, 0, 0.82);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
+  background: rgba(0, 0, 0, 0.85);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
   z-index: 150;
   display: none;
   justify-content: center;
@@ -279,14 +297,12 @@ body, html {
 
 .modal-section-title { font-family: var(--font-title); font-size: 11.5px; letter-spacing: 1px; color: var(--neon-cyan); margin: 18px 0 8px; }
 
-/* Tabel Kontrol */
 .modal-controls-table { background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.06); border-radius: 8px; overflow: hidden; margin-bottom: 14px; }
 .control-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.04); font-size: 13px; }
 .control-row:last-child { border-bottom: none; }
 .control-key { font-family: var(--font-mono); font-weight: bold; color: var(--neon-cyan); background: rgba(0, 242, 254, 0.08); padding: 2px 7px; border-radius: 4px; border: 1px solid rgba(0, 242, 254, 0.2); }
 .control-desc { color: #cbd5e1; }
 
-/* Tips Box */
 .modal-tips-box { background: rgba(0, 255, 102, 0.04); border: 1px solid rgba(0, 255, 102, 0.2); border-radius: 8px; padding: 12px 14px; font-size: 13px; color: #d1fae5; line-height: 1.6; }
 .modal-tips-box ul { padding-left: 18px; margin-top: 6px; }
 
@@ -294,31 +310,178 @@ body, html {
 .btn-modal-cancel { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; font-family: var(--font-title); font-size: 11px; padding: 11px 20px; border-radius: 6px; cursor: pointer; }
 .btn-modal-deploy { background: linear-gradient(90deg, #00c6ff, #0072ff); border: none; color: #fff; font-family: var(--font-title); font-size: 11px; font-weight: 800; letter-spacing: 1px; padding: 11px 24px; border-radius: 6px; cursor: pointer; }
 
-/* Viewport Game */
-#gameScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #020408; z-index: 100; display: none; flex-direction: column; }
+/* ========================================================= */
+/* 🕹️ GAME VIEWPORT CONTAINER & STRICT HUD ISOLATION         */
+/* ========================================================= */
+#gameScreen {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: #020408;
+  z-index: 100;
+  display: none;
+  flex-direction: column;
+}
 #gameScreen.active { display: flex; }
 
-.platform-bar { height: 50px; background: rgba(6, 12, 22, 0.95); border-bottom: 1px solid rgba(255, 255, 255, 0.08); display: flex; justify-content: space-between; align-items: center; padding: 0 20px; -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); z-index: 10; }
-.btn-back { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.15); color: #fff; font-family: var(--font-title); font-size: 10.5px; padding: 7px 14px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+.platform-bar {
+  height: 50px;
+  background: rgba(6, 12, 22, 0.95);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  z-index: 10;
+}
+
+.btn-back {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #fff;
+  font-family: var(--font-title);
+  font-size: 10.5px;
+  padding: 7px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
 .btn-back:hover { background: rgba(255, 0, 85, 0.25); border-color: var(--neon-magenta); }
 .key-badge { background: rgba(255, 255, 255, 0.12); padding: 1px 5px; border-radius: 3px; font-size: 8.5px; }
 
 .active-game-title { font-family: var(--font-title); font-size: 13px; letter-spacing: 2px; color: var(--neon-cyan); }
 .engine-badge { font-family: var(--font-mono); font-size: 10.5px; color: #64748b; }
 
-#viewportContainer { flex-grow: 1; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-#viewportContainer.arcade-mode canvas#gameCanvas { width: 360px; height: 540px; border-radius: 12px; border: 1px solid rgba(0, 242, 254, 0.3); box-shadow: 0 0 40px rgba(0, 0, 0, 0.9); background: #000; }
-#viewportContainer.fullscreen-mode canvas#gameCanvas { width: 100% !important; height: 100% !important; border-radius: 0; border: none; }
+#viewportContainer {
+  flex-grow: 1;
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+/* KUNCI PERBAIKAN: HILANGKAN HUD BRAWL SECARA MUTLAK SAAT BUKAN GAME BRAWL */
+.hidden,
+#brawlHud.hidden,
+.brawl-hud.hidden {
+  display: none !important;
+}
+
+#brawlHud.hidden .brawl-card,
+#brawlHud.hidden .brawl-top-right,
+#brawlHud.hidden .brawl-weapons-deck {
+  display: none !important;
+}
+
+/* TATA LETAK HUD BRAWL SAAT AKTIF (HANYA CYBERBRAWL) */
+.brawl-hud:not(.hidden) {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  padding: 18px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  z-index: 25;
+}
+
+.brawl-card {
+  background: rgba(6, 12, 22, 0.85);
+  border: 1px solid rgba(0, 242, 254, 0.3);
+  border-radius: 8px;
+  padding: 8px 14px;
+  backdrop-filter: blur(10px);
+  pointer-events: auto;
+}
+.player-stats { width: 220px; }
+.badge-level { background: var(--neon-cyan); color: #000; font-family: var(--font-title); font-size: 10px; padding: 2px 5px; border-radius: 3px; font-weight: 800; }
+.player-name { font-family: var(--font-mono); font-size: 11px; margin-left: 6px; }
+
+.bar-container {
+  width: 100%; height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  position: relative;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.hp-bar-fill { background: linear-gradient(90deg, #ff0055, #00ff66); height: 100%; width: 100%; }
+.bar-text { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: var(--font-mono); font-size: 8.5px; font-weight: 700; }
+
+.brawl-top-right { position: absolute; top: 18px; right: 24px; }
+.match-info { font-family: var(--font-mono); font-size: 11px; display: flex; gap: 10px; }
 
 /* Deck Senjata CyberBrawl */
-.brawl-weapons-deck { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; z-index: 20; }
-.wep-card { background: rgba(6, 12, 22, 0.85); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 8px; padding: 6px 12px; display: flex; align-items: center; gap: 8px; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); transition: all 0.2s; }
+.brawl-weapons-deck {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
+  z-index: 20;
+}
+.wep-card {
+  background: rgba(6, 12, 22, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 6px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  transition: all 0.2s;
+}
 .wep-card .wep-key { font-family: var(--font-mono); font-size: 10px; background: rgba(255, 255, 255, 0.1); padding: 1px 5px; border-radius: 3px; color: #94a3b8; }
 .wep-card .wep-name { font-family: var(--font-title); font-size: 9px; font-weight: 700; color: #94a3b8; }
 .wep-card.active { border-color: var(--neon-cyan); background: rgba(0, 242, 254, 0.18); box-shadow: 0 0 14px rgba(0, 242, 254, 0.35); }
 .wep-card.active .wep-name { color: #fff; }
 
-.hud-panel { background: rgba(4, 9, 20, 0.9); border-top: 1px solid rgba(255, 255, 255, 0.08); padding: 8px 16px; text-align: center; font-size: 13.5px; color: #8c9cb3; }
+/* ========================================================= */
+/* 🕹️ MODE ARCADE: KONSOL MEWAH (MENGISI PENUH LAYAR LEBAR)  */
+/* ========================================================= */
+#viewportContainer.arcade-mode {
+  background: radial-gradient(circle at center, rgba(14, 25, 48, 0.7) 0%, rgba(2, 5, 14, 0.98) 100%);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+#viewportContainer.arcade-mode canvas#gameCanvas {
+  width: 440px;
+  height: 660px;
+  max-height: 80vh;
+  border-radius: 18px;
+  border: 2px solid rgba(0, 242, 254, 0.45);
+  box-shadow: 0 0 60px rgba(0, 242, 254, 0.2), 0 25px 70px rgba(0, 0, 0, 0.95);
+  background: #02040a;
+}
+
+/* MODE FULLSCREEN (KHUSUS CYBERBRAWL 2D) */
+#viewportContainer.fullscreen-mode canvas#gameCanvas {
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0;
+  border: none;
+}
+
+.hud-panel {
+  background: rgba(4, 9, 20, 0.95);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 13.5px;
+  color: #8c9cb3;
+}
 .hud-panel b { color: var(--neon-cyan); }
 
 @keyframes pulse-live { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.3; transform: scale(0.85); } }
