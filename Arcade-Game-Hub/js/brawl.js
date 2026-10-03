@@ -1,11 +1,11 @@
 // =================================================================
-// ⚔️ CYBERBRAWL 2D: TACTICAL SPEC-OPS (Pseudo-3D & Squad Edition)
-// Features: 2.5D Extruded Shadows, Tactical Flashlight, 3 Weapon Arsenal,
-//           Recruitable AI Squad, Bullet Deflection & Dynamic Decals
+// ⚔️ CYBERBRAWL 2D: TACTICAL SPEC-OPS (JUICE & COMBAT OVERDRIVE)
+// Features: Floating Damage Numbers, White Hit-Flash, Killstreaks,
+//           2.5D Extruded Depth, Tactical Flashlight, Squad AI
 // =================================================================
 
 const BrawlGame = {
-  instruction: "Gerak: <b>WASD</b> | Tembak: <b>Klik Kiri</b> | Katana: <b>Klik Kanan</b> | Ganti Senjata: <b>1 - 2 - 3 / Q</b> | Dash: <b>SPASI</b>",
+  instruction: "Gerak: <b>WASD</b> | Tembak: <b>Klik Kiri</b> | Katana Parry: <b>Klik Kanan</b> | Ganti Senjata: <b>1 - 2 - 3 / Q</b> | Dash: <b>SPASI</b>",
   state: {},
 
   init() {
@@ -22,8 +22,8 @@ const BrawlGame = {
         level: 1, exp: 0, expNeeded: 80,
         shootCooldown: 0, swordCooldown: 0, dashCooldown: 0,
         isDashing: false, dashTimer: 0, kills: 0, isDead: false,
+        hitFlash: 0,
         walkCycle: 0,
-        // Sistem Senjata (0: Carbine, 1: Shotgun, 2: Railgun)
         activeWeaponIdx: 0,
         weapons: [
           { name: "M4-CARBINE", rate: 0.12, damage: 28, speed: 1200, count: 1, spread: 0.08, color: "#00f2fe" },
@@ -32,7 +32,13 @@ const BrawlGame = {
         ]
       },
 
-      // --- SQUAD SYSTEM (TEMAN SATU TIM) ---
+      // --- COMBAT JUICE: FLOATING NUMBERS & KILLSTREAK ---
+      damageNumbers: [],
+      killstreak: 0,
+      killstreakTimer: 0,
+      announcerBanner: { text: "", color: "#ffea00", alpha: 0, scale: 1 },
+
+      // --- SQUAD SYSTEM ---
       squad: [],
       rescuePods: [
         { x: 1050, y: 1100, rescued: false, label: "MEDIC_OPERATOR" },
@@ -40,7 +46,6 @@ const BrawlGame = {
         { x: 1400, y: 1750, rescued: false, label: "SCOUT_SNIPER" }
       ],
 
-      // Entitas Pertempuran
       enemies: [],
       bullets: [],
       slashEffects: [],
@@ -48,7 +53,6 @@ const BrawlGame = {
       decals: [],
       barrels: [],
 
-      // 2.5D Extruded Bunkers (Memiliki Tinggi/Tebal Perspektif)
       bunkers: [
         { x: 1000, y: 1000, w: 180, h: 50, depth: 30 },
         { x: 1620, y: 1000, w: 180, h: 50, depth: 30 },
@@ -81,13 +85,53 @@ const BrawlGame = {
     }
   },
 
+  spawnDamageNumber(x, y, amount, color = "#ffffff", isCrit = false) {
+    this.state.damageNumbers.push({
+      x: x + (Math.random() - 0.5) * 16,
+      y: y - 10,
+      text: isCrit ? `CRIT ${amount}!` : `${amount}`,
+      color: color,
+      scale: isCrit ? 1.6 : 1.0,
+      vy: -2.2,
+      alpha: 1.0,
+      life: 0.75
+    });
+  },
+
+  triggerKillstreak(x, y) {
+    const s = this.state;
+    s.killstreak++;
+    s.killstreakTimer = 4.0; // Reset jendela kombo 4 detik
+
+    let bannerText = "";
+    let bannerColor = "#00f2fe";
+
+    if (s.killstreak === 2) {
+      bannerText = "DOUBLE KILL!";
+      bannerColor = "#00f2fe";
+    } else if (s.killstreak === 3) {
+      bannerText = "TRIPLE KILL!";
+      bannerColor = "#ffea00";
+    } else if (s.killstreak === 4) {
+      bannerText = "MEGA KILL!";
+      bannerColor = "#ff007f";
+    } else if (s.killstreak >= 5) {
+      bannerText = `RAMPAGE x${s.killstreak}!`;
+      bannerColor = "#ff1744";
+    }
+
+    if (bannerText) {
+      s.announcerBanner = { text: bannerText, color: bannerColor, alpha: 1.0, scale: 1.5 };
+      AudioEngine.playArpeggio(s.killstreak + 3);
+      FX.triggerShake(8, 6);
+    }
+  },
+
   onResize(w, h) {},
 
   onKeyDown(e) {
     this.state.keys[e.code] = true;
     if (e.code === "Space") this.triggerDash();
-
-    // Hotkey Ganti Senjata
     if (e.code === "Digit1") this.setWeapon(0);
     if (e.code === "Digit2") this.setWeapon(1);
     if (e.code === "Digit3") this.setWeapon(2);
@@ -106,6 +150,12 @@ const BrawlGame = {
     p.activeWeaponIdx = idx;
     AudioEngine.playTone(600 + idx * 150, 'sine', 0.08, 0.2);
     FX.spawnText(p.x, p.y - 45, p.weapons[idx].name, p.weapons[idx].color);
+
+    // Update Visual Deck Slot di DOM
+    for (let i = 0; i < 3; i++) {
+      const slot = document.getElementById(`wepSlot${i}`);
+      if (slot) slot.classList.toggle("active", i === idx);
+    }
   },
 
   onMouseMove(mouseX, mouseY) {
@@ -156,7 +206,7 @@ const BrawlGame = {
         b.vy = Math.sin(p.angle) * 1300;
         b.damage *= 2.5;
         AudioEngine.playTone(1350, 'sine', 0.08, 0.2);
-        FX.spawnText(b.x, b.y, "DEFLECT!", "#00e676");
+        this.spawnDamageNumber(b.x, b.y, "DEFLECT!", "#00e676", true);
       }
     }
 
@@ -164,6 +214,8 @@ const BrawlGame = {
     for (let e of s.enemies) {
       if (!e.isDead && Math.hypot(e.x - p.x, e.y - p.y) < arc.radius + e.radius) {
         e.hp -= 110;
+        e.hitFlash = 0.08;
+        this.spawnDamageNumber(e.x, e.y, 110, "#00f2fe", true);
         e.x += Math.cos(p.angle) * 60;
         e.y += Math.sin(p.angle) * 60;
         FX.spawnParticles(e.x, e.y, "#ff0055", 18, 6);
@@ -191,11 +243,11 @@ const BrawlGame = {
         vx: Math.cos(finalAngle) * curWep.speed,
         vy: Math.sin(finalAngle) * curWep.speed,
         owner: 'player', damage: curWep.damage, life: 1.0,
-        color: curWep.color, pierce: curWep.pierce || false
+        color: curWep.color, pierce: curWep.pierce || false,
+        isCrit: p.activeWeaponIdx === 2
       });
     }
 
-    // Recoil Kamera & Suara Khas Senjata
     if (p.activeWeaponIdx === 1) {
       AudioEngine.playTone(180, 'sawtooth', 0.12, 0.25);
       FX.triggerShake(6, 4);
@@ -220,22 +272,42 @@ const BrawlGame = {
       color: "rgba(160, 0, 45, 0.26)"
     });
 
-    AudioEngine.playArpeggio(p.kills);
+    this.triggerKillstreak(enemy.x, enemy.y);
     FX.triggerShake(6, 5);
     FX.spawnParticles(enemy.x, enemy.y, "#ff0055", 20, 6);
-    FX.spawnText(enemy.x, enemy.y, text, "#ffea00");
   },
 
   update(dt) {
     const s = this.state;
     const p = s.player;
 
+    // Decay Killstreak Timer
+    if (s.killstreakTimer > 0) {
+      s.killstreakTimer -= dt;
+      if (s.killstreakTimer <= 0) s.killstreak = 0;
+    }
+
+    // Decay Announcer Banner
+    if (s.announcerBanner.alpha > 0) {
+      s.announcerBanner.alpha -= 0.6 * dt;
+      s.announcerBanner.scale += 0.3 * dt;
+    }
+
+    // Update Floating Damage Numbers
+    for (let i = s.damageNumbers.length - 1; i >= 0; i--) {
+      const dn = s.damageNumbers[i];
+      dn.y += dn.vy;
+      dn.life -= dt;
+      dn.alpha = Math.max(0, dn.life / 0.75);
+      if (dn.life <= 0) s.damageNumbers.splice(i, 1);
+    }
+
     if (!p.isDead) {
       if (p.shootCooldown > 0) p.shootCooldown -= dt;
       if (p.swordCooldown > 0) p.swordCooldown -= dt;
       if (p.dashCooldown > 0) p.dashCooldown -= dt;
+      if (p.hitFlash > 0) p.hitFlash -= dt;
 
-      // Navigasi WASD
       let mx = 0, my = 0;
       if (s.keys["KeyW"]) my -= 1;
       if (s.keys["KeyS"]) my += 1;
@@ -259,38 +331,35 @@ const BrawlGame = {
       p.y = Math.max(p.radius, Math.min(s.worldHeight - p.radius, p.y));
       p.angle = Math.atan2(s.mouseWorld.y - p.y, s.mouseWorld.x - p.x);
 
-      // Smooth Follow Camera
       s.camX += (p.x - s.camX) * 9 * dt;
       s.camY += (p.y - s.camY) * 9 * dt;
 
-      // Cek Penyelamatan Kapsul Pasukan (Rescue Pods)
+      // Rescue Pods
       for (let pod of s.rescuePods) {
         if (!pod.rescued && Math.hypot(p.x - pod.x, p.y - pod.y) < 60) {
           pod.rescued = true;
-          // Spawn Teman Satu Tim (Squad Mate)
           s.squad.push({
             id: `squad_${s.squad.length}`,
             name: pod.label,
             x: pod.x, y: pod.y,
             vx: 0, vy: 0, radius: 19, speed: 340, angle: 0,
             hp: 120, maxHp: 120,
-            shootTimer: 0, walkCycle: 0,
-            isDead: false
+            shootTimer: 0, walkCycle: 0, isDead: false, hitFlash: 0
           });
           AudioEngine.playTone(700, 'triangle', 0.4, 0.25);
           FX.triggerShake(10, 8);
-          FX.spawnText(pod.x, pod.y - 50, `SQUAD JOINED: ${pod.label}!`, "#00f2fe");
+          this.spawnDamageNumber(pod.x, pod.y - 40, `SQUAD JOINED!`, "#00f2fe", true);
           FX.spawnParticles(pod.x, pod.y, "#00f2fe", 35, 8);
         }
       }
     }
 
-    // UPDATE LOGIKA SQUAD TEMAN SATU TIM (AI COMPANIONS)
+    // Squad Companions
     for (let i = 0; i < s.squad.length; i++) {
       const sq = s.squad[i];
       if (sq.isDead) continue;
+      if (sq.hitFlash > 0) sq.hitFlash -= dt;
 
-      // Mengikuti Komandan (Player) dalam Formasi Segitiga
       const angleOffset = (i === 0 ? 0.75 : -0.75) * Math.PI;
       const targetFollowX = p.x + Math.cos(p.angle + angleOffset) * 65;
       const targetFollowY = p.y + Math.sin(p.angle + angleOffset) * 65;
@@ -303,7 +372,6 @@ const BrawlGame = {
         sq.walkCycle += 12 * dt;
       }
 
-      // Deteksi & Tembak Musuh Otomatis oleh Squad Mate
       let closestEnemy = null;
       let minEnemyDist = 480;
       for (let e of s.enemies) {
@@ -331,13 +399,12 @@ const BrawlGame = {
         sq.angle = p.angle;
       }
 
-      // Pasukan Medic Memberi Heal Pasif Jika Dekat
       if (sq.name.includes("MEDIC") && distToPlayer < 90 && p.hp < p.maxHp) {
         p.hp = Math.min(p.maxHp, p.hp + 6 * dt);
       }
     }
 
-    // SPANW SYSTEM MUSUH BERESKALASI
+    // Spawning Enemies
     s.spawnTimer += dt;
     const interval = Math.max(0.4, 1.5 - (p.kills * 0.02));
     if (s.spawnTimer >= interval && !p.isDead) {
@@ -355,16 +422,16 @@ const BrawlGame = {
         maxHp: isBrute ? 160 : 60,
         speed: isBrute ? 190 : 260,
         angle: 0, shootTimer: Math.random() * 1.5,
-        isFrozen: 0, isDead: false
+        isFrozen: 0, isDead: false, hitFlash: 0
       });
     }
 
-    // Update Musuh
+    // Update Enemies
     for (let e of s.enemies) {
       if (e.isDead) continue;
+      if (e.hitFlash > 0) e.hitFlash -= dt;
       if (e.isFrozen > 0) { e.isFrozen -= dt; continue; }
 
-      // Targetkan Pemain atau Squad Terdekat
       let targetEntity = p;
       let minD = Math.hypot(p.x - e.x, p.y - e.y);
       for (let sq of s.squad) {
@@ -379,7 +446,6 @@ const BrawlGame = {
       e.x += Math.cos(toTarget) * e.speed * dt;
       e.y += Math.sin(toTarget) * e.speed * dt;
 
-      // Menembak Target
       e.shootTimer -= dt;
       if (e.shootTimer <= 0 && minD < 500) {
         e.shootTimer = 1.4;
@@ -393,14 +459,14 @@ const BrawlGame = {
       }
     }
 
-    // Update Peluru & Collision
+    // Bullets Collision & Damage Numbers
     for (let i = s.bullets.length - 1; i >= 0; i--) {
       const b = s.bullets[i];
       b.x += b.vx * dt;
       b.y += b.vy * dt;
       b.life -= dt;
 
-      // Tabrak Tong Hazard
+      // Tabrak Tong
       for (let br of s.barrels) {
         if (!br.isDead && Math.hypot(b.x - br.x, b.y - br.y) < br.radius + 6) {
           if (!b.pierce) b.life = 0;
@@ -415,6 +481,8 @@ const BrawlGame = {
         for (let e of s.enemies) {
           if (!e.isDead && Math.hypot(b.x - e.x, b.y - e.y) < e.radius + 6) {
             e.hp -= b.damage;
+            e.hitFlash = 0.08; // Pemicu Hit Flash Putih
+            this.spawnDamageNumber(e.x, e.y, b.damage, b.color, b.isCrit);
             FX.spawnParticles(e.x, e.y, b.color, 5, 3);
             if (!b.pierce) b.life = 0;
             if (e.hp <= 0) this.killEnemy(e);
@@ -428,6 +496,8 @@ const BrawlGame = {
         if (!p.isDead && Math.hypot(b.x - p.x, b.y - p.y) < p.radius + 5) {
           b.life = 0;
           p.hp -= b.damage;
+          p.hitFlash = 0.08;
+          this.spawnDamageNumber(p.x, p.y, b.damage, "#ff1744", true);
           AudioEngine.play('hit');
           FX.triggerShake(9, 7);
           FX.spawnParticles(p.x, p.y, "#ff0055", 14, 5);
@@ -437,8 +507,10 @@ const BrawlGame = {
           if (!sq.isDead && Math.hypot(b.x - sq.x, b.y - sq.y) < sq.radius + 5) {
             b.life = 0;
             sq.hp -= b.damage;
+            sq.hitFlash = 0.08;
+            this.spawnDamageNumber(sq.x, sq.y, b.damage, "#ff1744");
             FX.spawnParticles(sq.x, sq.y, "#ff0055", 8, 4);
-            if (sq.hp <= 0) { sq.isDead = true; FX.spawnText(sq.x, sq.y, "TEAMMATE DOWN!", "#ff0055"); }
+            if (sq.hp <= 0) sq.isDead = true;
             break;
           }
         }
@@ -447,7 +519,7 @@ const BrawlGame = {
       if (b.life <= 0) s.bullets.splice(i, 1);
     }
 
-    // Magnet EXP Data Cores
+    // Magnet EXP
     for (let i = s.dataCores.length - 1; i >= 0; i--) {
       const core = s.dataCores[i];
       const d = Math.hypot(p.x - core.x, p.y - core.y);
@@ -468,18 +540,18 @@ const BrawlGame = {
           p.hp = p.maxHp;
           AudioEngine.playTone(660, 'triangle', 0.3, 0.2);
           FX.triggerShake(10, 8);
-          FX.spawnText(p.x, p.y - 45, `TACTICAL PROMOTION! (LV.${p.level})`, "#00ff66");
+          this.spawnDamageNumber(p.x, p.y - 45, `LEVEL UP!`, "#00ff66", true);
         }
       }
     }
 
-    // Slash Arc Lifetime
+    // Slash Arc
     for (let i = s.slashEffects.length - 1; i >= 0; i--) {
       s.slashEffects[i].life -= dt;
       if (s.slashEffects[i].life <= 0) s.slashEffects.splice(i, 1);
     }
 
-    // Update Elemen DOM HUD
+    // DOM HUD Updates
     const hpBar = document.getElementById("brawlHpBar");
     const hpText = document.getElementById("brawlHpText");
     const lvlText = document.getElementById("brawlLevel");
@@ -498,24 +570,26 @@ const BrawlGame = {
     FX.triggerShake(16, 12);
     const col = br.type === 'CRYO' ? "#00f2fe" : "#ff3d00";
     FX.spawnParticles(br.x, br.y, col, 35, 9);
-    FX.spawnText(br.x, br.y, br.type === 'CRYO' ? "CRYO NOVA!" : "EXPLOSION!", col);
+    this.spawnDamageNumber(br.x, br.y, br.type === 'CRYO' ? "CRYO NOVA!" : "EXPLOSION!", col, true);
 
     for (let e of this.state.enemies) {
       if (!e.isDead && Math.hypot(e.x - br.x, e.y - br.y) < 200) {
         if (br.type === 'CRYO') e.isFrozen = 3.5;
         else {
           e.hp -= 140;
+          e.hitFlash = 0.08;
+          this.spawnDamageNumber(e.x, e.y, 140, "#ff3d00", true);
           if (e.hp <= 0) this.killEnemy(e, "BLOWN UP!");
         }
       }
     }
   },
 
-  // --- RENDERING 2.5D SPEC-OPS STICKMAN (DENGAN DETAIL REALISTIS & BAYANGAN) ---
-  drawStickmanSoldier(ctx, x, y, angle, isMoving, walkCycle, vestCol, helmCol, isPlayer, role = 'OPERATOR') {
+  // Menggambar Karakter dengan Efek Hit-Flash Putih & Bayangan
+  drawStickmanSoldier(ctx, x, y, angle, isMoving, walkCycle, vestCol, helmCol, isPlayer, role = 'OPERATOR', hitFlash = 0) {
     ctx.save();
 
-    // 1. Dynamic Drop Shadow (Bayangan Jatuh Arah Bawah)
+    // 1. Drop Shadow
     ctx.fillStyle = "rgba(0, 0, 0, 0.45)";
     ctx.beginPath();
     ctx.ellipse(x + 4, y + 9, 18, 10, 0, 0, Math.PI * 2);
@@ -524,29 +598,26 @@ const BrawlGame = {
     ctx.translate(x, y);
     ctx.rotate(angle);
 
-    // 2. Kaki Melangkah Realistis (Sepatu Tempur Bertekstur)
+    // Jika sedang Hit-Flash (terkena peluru), beri warna putih menyala
+    const isFlashing = hitFlash > 0;
+    const currentVest = isFlashing ? "#ffffff" : vestCol;
+    const currentHelm = isFlashing ? "#ffffff" : helmCol;
+
+    // 2. Kaki Melangkah
     const leg = isMoving ? Math.sin(walkCycle) * 8 : 0;
-    ctx.fillStyle = "#121417";
+    ctx.fillStyle = isFlashing ? "#ffffff" : "#121417";
     ctx.fillRect(-13 + leg, -14, 10, 7);
     ctx.fillRect(-13 - leg, 8, 10, 7);
 
-    // 3. Rompi Taktis Bergradasi (Body Armor Plate Carrier)
-    const vestGrad = ctx.createLinearGradient(-12, -12, 12, 12);
-    vestGrad.addColorStop(0, vestCol);
-    vestGrad.addColorStop(1, "#0a1017");
-    ctx.fillStyle = vestGrad;
+    // 3. Rompi Taktis
+    ctx.fillStyle = currentVest;
     ctx.fillRect(-12, -12, 24, 24);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+    ctx.strokeStyle = isFlashing ? "#ffffff" : "rgba(255, 255, 255, 0.2)";
     ctx.lineWidth = 1.5;
     ctx.strokeRect(-12, -12, 24, 24);
 
-    // Mag Pouch di Depan Rompi
-    ctx.fillStyle = "#1b2533";
-    ctx.fillRect(-6, -9, 4, 18);
-    ctx.fillRect(-1, -9, 4, 18);
-
-    // 4. Lengan Tangan Menggenggam Senjata
-    ctx.strokeStyle = "#e8dcd0";
+    // 4. Lengan & Tangan
+    ctx.strokeStyle = isFlashing ? "#ffffff" : "#e8dcd0";
     ctx.lineWidth = 4.5;
     ctx.lineCap = "round";
     ctx.beginPath();
@@ -554,45 +625,33 @@ const BrawlGame = {
     ctx.moveTo(-2, 9); ctx.lineTo(12, 7); ctx.lineTo(18, 2);
     ctx.stroke();
 
-    // 5. Model Senjata Spesifik Sesuai Slot
+    // 5. Model Senjata
     const wepIdx = isPlayer ? this.state.player.activeWeaponIdx : 0;
     if (wepIdx === 1 && isPlayer) {
-      // Breacher Shotgun
-      ctx.fillStyle = "#212121";
+      ctx.fillStyle = isFlashing ? "#ffffff" : "#212121";
       ctx.fillRect(8, -4, 22, 8);
-      ctx.fillStyle = "#ffea00";
-      ctx.fillRect(16, 4, 5, 3);
     } else if (wepIdx === 2 && isPlayer) {
-      // Hyper Railgun
-      ctx.fillStyle = "#1a0033";
+      ctx.fillStyle = isFlashing ? "#ffffff" : "#1a0033";
       ctx.fillRect(8, -3, 34, 6);
-      ctx.fillStyle = "#e040fb";
-      ctx.fillRect(20, -1.5, 18, 3);
     } else {
-      // Assault Rifle Standar
-      ctx.fillStyle = "#1e1e1e";
+      ctx.fillStyle = isFlashing ? "#ffffff" : "#1e1e1e";
       ctx.fillRect(8, -2.5, 26, 5);
-      ctx.fillStyle = "#000000";
-      ctx.fillRect(15, 2.5, 6, 4);
     }
 
-    // 6. Kepala, Helm Kevlar, & Night Vision / Goggles
-    ctx.fillStyle = "#e8dcd0";
+    // 6. Kepala & Helm
+    ctx.fillStyle = isFlashing ? "#ffffff" : "#e8dcd0";
     ctx.beginPath();
     ctx.arc(0, 0, 9.5, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = helmCol;
+    ctx.fillStyle = currentHelm;
     ctx.beginPath();
     ctx.arc(-1, 0, 10, -Math.PI / 2, Math.PI / 2, true);
     ctx.fill();
 
-    // Kacamata Taktis / NVG
+    // Kacamata Goggles
     ctx.fillStyle = isPlayer ? "#00f2fe" : (role === 'SQUAD' ? "#00e676" : "#ff1744");
-    ctx.shadowBlur = 10;
-    ctx.shadowColor = ctx.fillStyle;
     ctx.fillRect(5, -5, 3.5, 10);
-    ctx.shadowBlur = 0;
 
     ctx.restore();
   },
@@ -601,14 +660,13 @@ const BrawlGame = {
     const s = this.state;
     const p = s.player;
 
-    // Background Gelap Warzone
     ctx.fillStyle = "#03060c";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();
     ctx.translate(canvas.width / 2 - s.camX, canvas.height / 2 - s.camY);
 
-    // 1. Grid Sirkuit Lantai
+    // 1. Grid Lantai
     ctx.strokeStyle = "rgba(0, 242, 254, 0.035)";
     ctx.lineWidth = 1;
     for (let x = 0; x <= s.worldWidth; x += 120) {
@@ -618,7 +676,7 @@ const BrawlGame = {
       ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(s.worldWidth, y); ctx.stroke();
     }
 
-    // 2. Jejak Decals Darah & Oli
+    // 2. Jejak Decals
     for (let d of s.decals) {
       ctx.save();
       ctx.fillStyle = d.color;
@@ -631,23 +689,17 @@ const BrawlGame = {
     // 3. Batas Luar Peta
     ctx.strokeStyle = "#ff0055";
     ctx.lineWidth = 8;
-    ctx.shadowBlur = 20;
-    ctx.shadowColor = "#ff0055";
     ctx.strokeRect(0, 0, s.worldWidth, s.worldHeight);
-    ctx.shadowBlur = 0;
 
-    // 4. Render Dinding Bunker 2.5D (Extruded Depth)
+    // 4. Dinding Bunker 2.5D
     for (let bk of s.bunkers) {
       ctx.save();
-      // Bayangan Bawah Dinding
       ctx.fillStyle = "rgba(0,0,0,0.5)";
       ctx.fillRect(bk.x + 8, bk.y + bk.h, bk.w, bk.depth);
 
-      // Sisi Tebal Dinding Samping (Dark Shading)
       ctx.fillStyle = "#0c1524";
       ctx.fillRect(bk.x, bk.y + bk.h, bk.w, bk.depth);
 
-      // Muka Atas Dinding (Light Facing)
       ctx.fillStyle = "#1b2c45";
       ctx.strokeStyle = "#00f2fe";
       ctx.lineWidth = 2;
@@ -656,7 +708,7 @@ const BrawlGame = {
       ctx.restore();
     }
 
-    // 5. Render Kapsul Penyelamatan Pasukan (Rescue Pods)
+    // 5. Rescue Pods
     for (let pod of s.rescuePods) {
       ctx.save();
       if (!pod.rescued) {
@@ -675,12 +727,11 @@ const BrawlGame = {
       ctx.restore();
     }
 
-    // 6. Tong Reaktif (Barrels)
+    // 6. Tong Barrels
     for (let br of s.barrels) {
       if (br.isDead) continue;
       ctx.save();
       const col = br.type === 'CRYO' ? "#00f2fe" : "#ff3d00";
-      // Drop Shadow
       ctx.fillStyle = "rgba(0,0,0,0.4)";
       ctx.beginPath(); ctx.ellipse(br.x + 3, br.y + 6, br.radius, br.radius * 0.6, 0, 0, Math.PI * 2); ctx.fill();
 
@@ -696,8 +747,7 @@ const BrawlGame = {
     for (let core of s.dataCores) {
       ctx.save();
       ctx.fillStyle = "#00ff66";
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = "#00ff66";
+      ctx.shadowBlur = 12; ctx.shadowColor = "#00ff66";
       ctx.beginPath(); ctx.arc(core.x, core.y, 6, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
@@ -706,22 +756,19 @@ const BrawlGame = {
     for (let sl of s.slashEffects) {
       ctx.save();
       ctx.strokeStyle = "#00f2fe";
-      ctx.lineWidth = 10;
-      ctx.shadowBlur = 30;
-      ctx.shadowColor = "#00f2fe";
+      ctx.lineWidth = 10; ctx.shadowBlur = 30; ctx.shadowColor = "#00f2fe";
       ctx.beginPath();
       ctx.arc(sl.x, sl.y, sl.radius, sl.angle - Math.PI * 0.45, sl.angle + Math.PI * 0.45);
       ctx.stroke();
       ctx.restore();
     }
 
-    // 9. Peluru Tracer Menembus Udara
+    // 9. Peluru Tracer
     for (let b of s.bullets) {
       ctx.save();
       ctx.strokeStyle = b.color;
       ctx.lineWidth = b.pierce ? 6 : 3.5;
-      ctx.shadowBlur = 12;
-      ctx.shadowColor = b.color;
+      ctx.shadowBlur = 12; ctx.shadowColor = b.color;
       ctx.beginPath();
       ctx.moveTo(b.x, b.y);
       ctx.lineTo(b.x - b.vx * 0.035, b.y - b.vy * 0.035);
@@ -729,14 +776,13 @@ const BrawlGame = {
       ctx.restore();
     }
 
-    // 10. Render Squad Teammates (Prajurit Sekutu)
+    // 10. Squad Teammates
     for (let sq of s.squad) {
       if (sq.isDead) continue;
       this.drawStickmanSoldier(
         ctx, sq.x, sq.y, sq.angle, true, sq.walkCycle,
-        "#1565c0", "#0d47a1", false, 'SQUAD'
+        "#1565c0", "#0d47a1", false, 'SQUAD', sq.hitFlash
       );
-      // HP Bar Teammate (Biru/Hijau)
       const pct = Math.max(0, sq.hp / sq.maxHp);
       ctx.fillStyle = "rgba(0,0,0,0.7)";
       ctx.fillRect(sq.x - 18, sq.y - sq.radius - 12, 36, 4);
@@ -744,14 +790,13 @@ const BrawlGame = {
       ctx.fillRect(sq.x - 18, sq.y - sq.radius - 12, 36 * pct, 4);
     }
 
-    // 11. Render Musuh
+    // 11. Musuh
     for (let e of s.enemies) {
       if (e.isDead) continue;
       const vest = e.type === 'BRUTE' ? "#3e2723" : "#4e342e";
       const helm = e.type === 'BRUTE' ? "#212121" : "#b71c1c";
-      this.drawStickmanSoldier(ctx, e.x, e.y, e.angle, true, 0, vest, helm, false, 'ENEMY');
+      this.drawStickmanSoldier(ctx, e.x, e.y, e.angle, true, 0, vest, helm, false, 'ENEMY', e.hitFlash);
 
-      // HP Bar Musuh
       const pct = Math.max(0, e.hp / e.maxHp);
       ctx.fillStyle = "rgba(0,0,0,0.7)";
       ctx.fillRect(e.x - 18, e.y - e.radius - 12, 36, 4);
@@ -759,9 +804,8 @@ const BrawlGame = {
       ctx.fillRect(e.x - 18, e.y - e.radius - 12, 36 * pct, 4);
     }
 
-    // 12. Render Pemain (Spec-Ops Commando) + Volumetric Tactical Flashlight
+    // 12. Pemain + Senter Taktis
     if (!p.isDead) {
-      // A. Tactical Vision Cone (Flashlight Menyala ke Arah Pandang)
       ctx.save();
       const lightGrad = ctx.createRadialGradient(p.x, p.y, 20, p.x + Math.cos(p.angle) * 450, p.y + Math.sin(p.angle) * 450, 480);
       lightGrad.addColorStop(0, "rgba(0, 242, 254, 0.22)");
@@ -775,16 +819,40 @@ const BrawlGame = {
       ctx.fill();
       ctx.restore();
 
-      // B. Render Prajurit Pemain
       this.drawStickmanSoldier(
         ctx, p.x, p.y, p.angle, (p.vx !== 0 || p.vy !== 0), p.walkCycle,
-        "#2e7d32", "#1b5e20", true, 'COMMANDER'
+        "#2e7d32", "#1b5e20", true, 'COMMANDER', p.hitFlash
       );
+    }
+
+    // 13. Render Floating Damage Numbers
+    for (let dn of s.damageNumbers) {
+      ctx.save();
+      ctx.globalAlpha = dn.alpha;
+      ctx.font = `bold ${Math.round(16 * dn.scale)}px 'Orbitron', monospace`;
+      ctx.fillStyle = dn.color;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = dn.color;
+      ctx.fillText(dn.text, dn.x, dn.y);
+      ctx.restore();
     }
 
     ctx.restore();
 
-    // Layar Game Over
+    // 14. Killstreak Announcer Banner di Tengah Layar
+    if (s.announcerBanner.alpha > 0.05) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(1.0, s.announcerBanner.alpha);
+      ctx.font = `900 ${Math.round(36 * s.announcerBanner.scale)}px 'Orbitron', monospace`;
+      ctx.fillStyle = s.announcerBanner.color;
+      ctx.shadowBlur = 25;
+      ctx.shadowColor = s.announcerBanner.color;
+      ctx.textAlign = "center";
+      ctx.fillText(s.announcerBanner.text, canvas.width / 2, 140);
+      ctx.restore();
+    }
+
+    // Game Over
     if (p.isDead) {
       ctx.fillStyle = "rgba(0, 0, 0, 0.88)";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -793,7 +861,7 @@ const BrawlGame = {
       ctx.fillText("OPERATOR KIA", canvas.width / 2 - 200, canvas.height / 2 - 20);
       ctx.fillStyle = "#ffffff";
       ctx.font = "24px 'Rajdhani', sans-serif";
-      ctx.fillText(`Kills: ${p.kills} | Tekan ESC untuk kembali ke Lobby`, canvas.width / 2 - 180, canvas.height / 2 + 40);
+      ctx.fillText(`Total Eliminasi: ${p.kills} | Tekan ESC untuk kembali ke Lobby`, canvas.width / 2 - 220, canvas.height / 2 + 40);
     }
   }
 };
